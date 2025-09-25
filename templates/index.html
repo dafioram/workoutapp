@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout Generator</title>
+</head>
+<body>
+  <h1>Workout Generator</h1>
+
+  {% if message %}
+    <p style="color: green;"><strong>{{ message }}</strong></p>
+  {% endif %}
+
+  <form method="POST">
+    <label>Number of exercises:</label>
+    <input type="number" name="num" value="{{ num }}" min="1">
+    <button type="submit" name="generate" value="1">Generate / Redraw</button>
+    {% if workout %}
+      <button type="submit" name="save" value="1">Save Workout</button>
+    {% endif %}
+  </form>
+
+  {% if workout %}
+    <h2>Your Workout</h2>
+    <ul>
+      {% for ex in workout %}
+        <li>{{ ex.name }} (ID: {{ ex.id }})</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <p><a href="{{ url_for('history') }}">View Workout History</a></p>
+</body>
+</html>
