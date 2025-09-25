@@ -3,5 +3,6 @@
 	"name": "Push Ups",
 	"muscle": "chest",
 	"body_part": "upper",
-	"body_weight": "True"
+	"body_weight": true,
+	"variants": "none"
 }

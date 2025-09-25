@@ -5,7 +5,7 @@ app = Flask(__name__)
 app.secret_key = "supersecret"  # needed for session storage
 
 EXERCISE_DIR = "exercises"
-WORKOUT_LOG = "workouts.json"
+WORKOUT_LOG = "workout_log.json"
 
 def load_exercises():
     exercises = []

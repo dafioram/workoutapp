@@ -3,6 +3,7 @@
 	"name": "Reverse Lunges",
 	"muscle": "quads",
 	"body_part": "lower",
-	"body_weight": "True",
+	"body_weight": true,
+	"variants": "none",
 	"Description": ""
 }

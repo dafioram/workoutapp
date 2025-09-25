@@ -3,5 +3,6 @@
 	"name": "Plank",
 	"muscle": "abs",
 	"body_part": "upper",
-	"body_weight": "True"
+	"body_weight": true,
+	"variants": "none"
 }
