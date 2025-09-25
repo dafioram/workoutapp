@@ -9,7 +9,12 @@
     <ul>
       {% for w in workouts %}
         <li>
-          <strong>{{ w.timestamp }}</strong>
+          <strong>{{ w.timestamp }}</strong><br>
+          Sets: {{ w.num_sets }},
+          Exercise Duration: {{ w.exercise_duration }}s,
+          Rest between exercises: {{ w.rest_duration }}s,
+          Rest between sets: {{ (w.set_rest / 60)|round(1) }} min<br>
+          <em>Total Time: {{ w.total_time }}</em>
           <ul>
             {% for ex in w.exercises %}
               <li>{{ ex.name }} (ID: {{ ex.id }})</li>

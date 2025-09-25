@@ -10,9 +10,22 @@
     <p style="color: green;"><strong>{{ message }}</strong></p>
   {% endif %}
 
-  <form method="POST">
+  <form id="workoutForm" method="POST">
     <label>Number of exercises:</label>
-    <input type="number" name="num" value="{{ num }}" min="1">
+    <input type="number" id="num_exercises" name="num_exercises" value="{{ num_exercises }}" min="1"><br>
+
+    <label>Number of sets:</label>
+    <input type="number" id="num_sets" name="num_sets" value="{{ num_sets }}" min="1"><br>
+
+    <label>Exercise duration (seconds):</label>
+    <input type="number" id="ex_duration" name="ex_duration" value="{{ ex_duration }}" min="1"><br>
+
+    <label>Rest duration between exercises (seconds):</label>
+    <input type="number" id="rest_duration" name="rest_duration" value="{{ rest_duration }}" min="0"><br>
+
+    <label>Rest between sets (minutes):</label>
+    <input type="number" id="set_rest" name="set_rest" value="{{ set_rest/60 }}" min="0" step="0.1"><br><br>
+
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}
       <button type="submit" name="save" value="1">Save Workout</button>
@@ -26,8 +39,38 @@
         <li>{{ ex.name }} (ID: {{ ex.id }})</li>
       {% endfor %}
     </ul>
+    <p><strong>Total workout time: <span id="total_time">{{ total_time }}</span></strong></p>
   {% endif %}
 
   <p><a href="{{ url_for('history') }}">View Workout History</a></p>
+
+  <script>
+  // Recalculate total time dynamically
+  function recalcTotal() {
+      const numExercises = parseInt(document.getElementById("num_exercises").value) || 0;
+      const numSets = parseInt(document.getElementById("num_sets").value) || 0;
+      const exDuration = parseInt(document.getElementById("ex_duration").value) || 0;
+      const restDuration = parseInt(document.getElementById("rest_duration").value) || 0;
+      const setRestMinutes = parseFloat(document.getElementById("set_rest").value) || 0;
+      const setRest = setRestMinutes * 60;
+
+      if(numExercises <= 0 || numSets <= 0) {
+          document.getElementById("total_time").innerText = "0s";
+          return;
+      }
+
+      let timePerSet = (numExercises * exDuration) + ((numExercises - 1) * restDuration);
+      let totalSec = (numSets * timePerSet) + ((numSets - 1) * setRest);
+
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      document.getElementById("total_time").innerText = `${mins}m ${secs}s`;
+  }
+
+  // attach event listeners
+  ["num_exercises","num_sets","ex_duration","rest_duration","set_rest"].forEach(id => {
+      document.getElementById(id).addEventListener("input", recalcTotal);
+  });
+  </script>
 </body>
-</html>
+</html> 
