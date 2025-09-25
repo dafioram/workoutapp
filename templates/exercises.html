@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <title>All Exercises</title>
+</head>
+<body>
+  <h1>All Exercises</h1>
+  {% if grouped_exercises %}
+    {% for muscle, items in grouped_exercises.items() %}
+      <h2>{{ muscle }}</h2>
+      <ul>
+        {% for ex in items %}
+          <li>
+            <strong>{{ ex.name }}</strong><br>
+            {% if ex.description %}
+              <em>{{ ex.description }}</em>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+  {% else %}
+    <p>No exercises found.</p>
+  {% endif %}
+  <p><a href="{{ url_for('index') }}">Back to Generator</a></p>
+</body>
+</html>

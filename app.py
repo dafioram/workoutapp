@@ -49,6 +49,24 @@ def format_time(seconds):
     mins, sec = divmod(seconds, 60)
     return f"{mins}m {sec}s"
 
+@app.route('/exercises')
+def exercises():
+    import glob
+
+    exercise_files = glob.glob("exercises/*.json")
+    exercises = []
+    for fpath in exercise_files:
+        with open(fpath, 'r') as f:
+            exercises.append(json.load(f))
+
+    # sort by muscle
+    grouped = {}
+    for ex in sorted(exercises, key=lambda e: e.get("muscle", "")):
+        muscle = ex.get("muscle", "Other")
+        grouped.setdefault(muscle, []).append(ex)
+
+    return render_template('exercises.html', grouped_exercises=grouped) 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     exercises = load_exercises()
