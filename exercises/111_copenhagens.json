@@ -1,0 +1,11 @@
+{
+	"id": 111,
+	"name": "Copenhagens",
+	"muscle": "adductors",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "chair",
+	"description": "turn on your side and use one leg to hold up your lower body"
+}

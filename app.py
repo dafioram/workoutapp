@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session
 import os, json, random, datetime
+from collections import defaultdict
 
 app = Flask(__name__)
 app.secret_key = "supersecret"
@@ -116,6 +117,108 @@ def history():
                                          w.get("set_rest",60))
         w["total_time"] = format_time(total_sec)
     return render_template("history.html", workouts=workouts)
+
+@app.route('/analysis')
+def analysis():
+    import glob
+    from datetime import datetime
+
+    # Load workouts
+    if not os.path.exists(WORKOUT_LOG):
+        workouts = []
+    else:
+        with open(WORKOUT_LOG, "r") as f:
+            workouts = json.load(f)
+
+    # Helper to parse ISO timestamp saved as "timestamp"
+    def parse_dt(s):
+        return datetime.fromisoformat(s)
+
+    # Sort workouts by timestamp (chronological)
+    workouts_sorted = sorted([w for w in workouts if w.get("timestamp")], key=lambda w: w["timestamp"])
+
+    # Per-workout trend (exercise vs rest)
+    trend_labels = []
+    trend_exercise = []
+    trend_rest = []
+    for w in workouts_sorted:
+        ts = w.get("timestamp")
+        dt = parse_dt(ts)
+        trend_labels.append(dt.strftime("%Y-%m-%d %H:%M"))
+        num_ex = len(w.get("exercises", []))
+        num_sets = int(w.get("num_sets", 1))
+        ex_dur = int(w.get("exercise_duration", 0))
+        rest_dur = int(w.get("rest_duration", 0))
+        set_rest = int(w.get("set_rest", 0))
+        # totals split into exercise-time and rest-time
+        exercise_time = num_sets * num_ex * ex_dur
+        rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
+        trend_exercise.append(exercise_time)
+        trend_rest.append(rest_time)
+
+    # helper to produce bucket key (ISO week or month)
+    def bucket_key(dt, by="week"):
+        if by == "week":
+            y, wn, _ = dt.isocalendar()  # (year, weeknumber, weekday)
+            return f"{y}-W{wn:02d}"
+        else:
+            return dt.strftime("%Y-%m")
+
+    # Aggregate workouts into buckets (week / month)
+    def aggregate(by="week"):
+        totals = {}
+        for w in workouts:
+            ts = w.get("timestamp")
+            if not ts:
+                continue
+            dt = parse_dt(ts)
+            key = bucket_key(dt, by)
+            if key not in totals:
+                totals[key] = {"exercise": 0, "rest": 0, "muscles": {}}
+
+            num_ex = len(w.get("exercises", []))
+            num_sets = int(w.get("num_sets", 1))
+            ex_dur = int(w.get("exercise_duration", 0))
+            rest_dur = int(w.get("rest_duration", 0))
+            set_rest = int(w.get("set_rest", 0))
+
+            exercise_time = num_sets * num_ex * ex_dur
+            rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
+
+            totals[key]["exercise"] += exercise_time
+            totals[key]["rest"] += rest_time
+
+            # allocate exercise_time to muscle groups by looking up each exercise id
+            for ex in w.get("exercises", []):
+                ex_id = ex.get("id")
+                muscle = "Other"
+                # match filenames like 'exercises/101_pushups.json'
+                matches = glob.glob(f"exercises/{ex_id}_*.json")
+                if matches:
+                    try:
+                        with open(matches[0], "r") as ef:
+                            ed = json.load(ef)
+                            muscle = ed.get("muscle", "Other")
+                    except Exception:
+                        muscle = "Other"
+                t = num_sets * ex_dur  # time contributed by this exercise across all sets
+                totals[key]["muscles"][muscle] = totals[key]["muscles"].get(muscle, 0) + t
+
+        # sort buckets by key (lexicographic is fine: YYYY-MM or YYYY-Www)
+        ordered = dict(sorted(totals.items()))
+        return ordered
+
+    weekly_totals = aggregate("week")
+    monthly_totals = aggregate("month")
+
+    return render_template(
+        "analysis.html",
+        trend_labels=trend_labels,
+        trend_exercise=trend_exercise,
+        trend_rest=trend_rest,
+        weekly=weekly_totals,
+        monthly=monthly_totals
+    )
 
 if __name__ == "__main__":
     app.run(debug=True) 

@@ -4,5 +4,6 @@
 	"muscle": "chest",
 	"body_part": "upper",
 	"body_weight": true,
+	"type": "strength",
 	"variants": "none"
 }

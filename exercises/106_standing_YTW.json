@@ -1,7 +1,7 @@
 {
 	"id": 106,
 	"name": "Standing YTW",
-	"muscle": "Back",
+	"muscle": "back",
 	"body_part": "upper",
 	"body_weight": true,
 	"variants": "lying",
