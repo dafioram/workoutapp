@@ -3,11 +3,14 @@
 <head>
   <title>Workout Timer</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    body { font-family: sans-serif; text-align: center; margin-top: 20px; }
     #exercise { font-size: 2em; margin: 20px 0; }
     #time { font-size: 3em; margin: 20px 0; }
     #next { color: gray; margin: 10px 0; }
-    button { padding: 10px 20px; margin-top: 20px; }
+    button { padding: 10px 20px; margin: 10px; }
+    ul { text-align: left; display: inline-block; margin-top: 30px; }
+    li { margin: 5px 0; }
+    .current { font-weight: bold; color: darkred; }
   </style>
 </head>
 <body>
@@ -17,6 +20,13 @@
   <div id="next"></div>
   <button onclick="startWorkout()">Start</button>
   <button onclick="location.href='{{ url_for('index') }}'">Back</button>
+
+  <h2>Workout Plan</h2>
+  <ul id="workoutList">
+    {% for ex in workout %}
+      <li id="ex-{{ loop.index0 }}">{{ ex.name }}</li>
+    {% endfor %}
+  </ul>
 
   <script>
     const workout = {{ workout|tojson }};
@@ -43,11 +53,14 @@
           timeLeft = setRest;
           document.getElementById("exercise").innerText = `Rest Between Sets`;
           document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+          highlightCurrent(-1);
           tick();
         } else {
           document.getElementById("exercise").innerText = "Workout Complete!";
           document.getElementById("time").innerText = "";
           document.getElementById("next").innerText = "";
+          highlightCurrent(-1);
+          autoSaveWorkout();
         }
         return;
       }
@@ -59,6 +72,7 @@
       document.getElementById("next").innerText = (currentIndex < workout.length - 1)
           ? `Next: ${workout[currentIndex+1].name}`
           : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
+      highlightCurrent(currentIndex);
       tick();
     }
 
@@ -67,6 +81,7 @@
       timeLeft = restDuration;
       document.getElementById("exercise").innerText = `Rest`;
       document.getElementById("next").innerText = `Next: ${workout[currentIndex].name}`;
+      highlightCurrent(-1);
       tick();
     }
 
@@ -95,6 +110,28 @@
       const m = Math.floor(sec / 60);
       const s = sec % 60;
       return `${m}:${s.toString().padStart(2,"0")}`;
+    }
+
+    function highlightCurrent(index) {
+      const items = document.querySelectorAll("#workoutList li");
+      items.forEach((li, i) => {
+        if (i === index) {
+          li.classList.add("current");
+        } else {
+          li.classList.remove("current");
+        }
+      });
+    }
+
+    function autoSaveWorkout() {
+      fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Auto-save:", data);
+          if (data.status === "saved") {
+            document.getElementById("next").innerText = "Workout saved!";
+          }
+        });
     }
   </script>
 </body>

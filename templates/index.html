@@ -28,11 +28,11 @@
 
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}
-      <button type="submit" name="save" value="1">Save Workout</button>
+      <button type="submit" name="save" value="1">Save Workout (manual log)</button>
     {% endif %}
 	{% if workout %}
 	<a href="{{ url_for('timer') }}">
-    <button type="button">Start Timer</button>
+    <button type="button">Start Workout (automatic log)</button>
 	</a>
 	{% endif %}
   </form>

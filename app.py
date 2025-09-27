@@ -85,6 +85,24 @@ def timer():
                            rest_duration=rest_duration,
                            set_rest=set_rest)
 
+@app.route("/save_current_workout", methods=["POST"])
+def save_current_workout():
+    workout = session.get("current_workout")
+    if not workout:
+        return jsonify({"status": "no workout"})
+
+    num_sets = session.get("num_sets", 1)
+    ex_duration = session.get("ex_duration", 30)
+    rest_duration = session.get("rest_duration", 15)
+    set_rest = session.get("set_rest", 60)
+
+    save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
+
+    # clear the session workout after saving
+    session.pop("current_workout", None)
+
+    return jsonify({"status": "saved"})
+
 @app.route('/exercises')
 def exercises():
     import glob
