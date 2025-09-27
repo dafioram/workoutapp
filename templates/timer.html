@@ -1,6 +1,41 @@
 <!doctype html>
 <html>
 <head>
+
+<!-- Unified Progress Bar -->
+<div class="progress-wrapper">
+  {% for s in range(num_sets) %}
+    <div class="set-segment" id="set-{{s}}">
+      <div class="fill" id="set-fill-{{s}}"></div>
+    </div>
+  {% endfor %}
+</div>
+
+<style>
+.progress-wrapper {
+  display: flex;
+  gap: 4px; /* space between sets */
+  margin: 20px auto;
+  width: 80%;
+  height: 25px;
+}
+
+.set-segment {
+  flex: 1; /* each set is equal width */
+  background: #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.fill {
+  background: linear-gradient(90deg, #4caf50, #2e7d32);
+  height: 100%;
+  width: 0%; /* updated by JS */
+  transition: width 0.5s ease;
+}
+</style>
+
   <title>Workout Timer</title>
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 20px; }
@@ -13,6 +48,9 @@
     ul { text-align: left; display: inline-block; margin-top: 30px; }
     li { margin: 5px 0; }
     .current { font-weight: bold; color: darkred; }
+    .progress-container { margin: 15px auto; width: 80%; }
+    progress { width: 100%; height: 25px; }
+    label { font-weight: bold; display: block; margin: 8px 0 4px; }
   </style>
 </head>
 <body>
@@ -23,7 +61,6 @@
   <div id="next"></div>
   <img id="next-img" src="" alt="" style="display:none;">
 
-  <!-- Button order changed: Back → Start → Pause -->
   <button onclick="location.href='{{ url_for('index') }}'">Back</button>
   <button id="startBtn" onclick="startWorkout()">Start</button>
   <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
@@ -48,6 +85,7 @@
     const exDuration = {{ ex_duration }};
     const restDuration = {{ rest_duration }};
     const setRest = {{ set_rest }};
+    const totalExercises = workout.length;
 
     let currentSet = 1;
     let currentIndex = 0;
@@ -55,6 +93,17 @@
     let timer;
     let timeLeft = 0;
     let paused = false;
+
+function updateProgress() {
+  // Fill current set’s progress
+  const percent = (currentIndex / totalExercises) * 100;
+  document.getElementById(`set-fill-${currentSet-1}`).style.width = percent + "%";
+
+  // Past sets should be 100%
+  for (let s = 0; s < currentSet-1; s++) {
+    document.getElementById(`set-fill-${s}`).style.width = "100%";
+  }
+}
 
     function showImage(currImg, nextImg) {
       const exImg = document.getElementById("exercise-img");
@@ -77,7 +126,6 @@
       document.getElementById("startBtn").disabled = true;
       document.getElementById("pauseBtn").disabled = false;
 
-      // NEW: 7s countdown before starting first exercise
       let countdown = 7;
       document.getElementById("exercise").innerText = "Starting in...";
       document.getElementById("time").innerText = countdown;
@@ -99,10 +147,11 @@
         if (currentSet < numSets) {
           phase = "setrest";
           timeLeft = setRest;
-          document.getElementById("exercise").innerText = `Rest Between Sets`;
-          document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+          document.getElementById("exercise").innerText = `Rest Between Sets (Set ${currentSet}/${numSets})`;
+          document.getElementById("next").innerText = `Next: Set ${currentSet+1}/${numSets}`;
           showImage(null, null);
           highlightCurrent(-1);
+          updateProgress();
           tick();
         } else {
           document.getElementById("exercise").innerText = "Workout Complete!";
@@ -110,6 +159,7 @@
           document.getElementById("next").innerText = "";
           showImage(null, null);
           highlightCurrent(-1);
+          updateProgress();
           autoSaveWorkout();
         }
         return;
@@ -118,24 +168,28 @@
       phase = "exercise";
       const ex = workout[currentIndex];
       timeLeft = exDuration;
-      document.getElementById("exercise").innerText = `Set ${currentSet}: ${ex.name}`;
+      document.getElementById("exercise").innerText =
+        `Set ${currentSet}/${numSets} — Exercise ${currentIndex+1}/${totalExercises}: ${ex.name}`;
       const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
       document.getElementById("next").innerText = nextEx
-          ? `Next: ${nextEx.name}`
+          ? `Next: Exercise ${currentIndex+2}/${totalExercises} — ${nextEx.name}`
           : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
       showImage(ex.image, nextEx ? nextEx.image : null);
       highlightCurrent(currentIndex);
+      updateProgress();
       tick();
     }
 
     function startRest() {
       phase = "rest";
       timeLeft = restDuration;
-      document.getElementById("exercise").innerText = `Rest`;
       const nextEx = workout[currentIndex];
+      document.getElementById("exercise").innerText =
+        `Rest (Set ${currentSet}/${numSets}, Next: Exercise ${currentIndex+1}/${totalExercises})`;
       document.getElementById("next").innerText = `Next: ${nextEx.name}`;
       showImage(null, nextEx.image);
       highlightCurrent(-1);
+      updateProgress();
       tick();
     }
 
