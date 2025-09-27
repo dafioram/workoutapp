@@ -1,0 +1,15 @@
+{
+    "id": 120,
+    "name": "Reverse Table Top Lifts",
+    "muscle": "glutes",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "none",
+    "type": "strength",
+    "equipment": "none",
+    "link": "",
+    "active": true,
+    "intensity": 6,
+    "image": "exercises/reverse_table_top_lifts.png",
+    "description": "sit on the floor with knees bent and hands behind you, lift hips upward into a reverse tabletop position, then lower back down while keeping your core tight."
+}
