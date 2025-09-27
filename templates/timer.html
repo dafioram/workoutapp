@@ -7,6 +7,8 @@
     #exercise { font-size: 2em; margin: 20px 0; }
     #time { font-size: 3em; margin: 20px 0; }
     #next { color: gray; margin: 10px 0; }
+    #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
+    #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
     button { padding: 10px 20px; margin: 10px; }
     ul { text-align: left; display: inline-block; margin-top: 30px; }
     li { margin: 5px 0; }
@@ -16,9 +18,13 @@
 <body>
   <h1>Workout Timer</h1>
   <div id="exercise">Get Ready</div>
+  <img id="exercise-img" src="" alt="" style="display:none">
   <div id="time">--</div>
   <div id="next"></div>
-  <button onclick="startWorkout()">Start</button>
+  <img id="next-img" src="" alt="" style="display:none;">
+
+  <button id="startBtn" onclick="startWorkout()">Start</button>
+  <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
   <button onclick="location.href='{{ url_for('index') }}'">Back</button>
 
   <h2>Workout Plan</h2>
@@ -29,7 +35,14 @@
   </ul>
 
   <script>
-    const workout = {{ workout|tojson }};
+  const workout = [
+    {% for ex in workout %}
+      {
+        name: "{{ ex.name }}",
+        image: {{ url_for('static', filename=ex.image)|tojson }},
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
     const numSets = {{ num_sets }};
     const exDuration = {{ ex_duration }};
     const restDuration = {{ rest_duration }};
@@ -37,12 +50,31 @@
 
     let currentSet = 1;
     let currentIndex = 0;
-    let phase = "exercise"; // "exercise" | "rest" | "setrest"
+    let phase = "exercise";
     let timer;
     let timeLeft = 0;
+    let paused = false;
+
+function showImage(currImg, nextImg) {
+  const exImg = document.getElementById("exercise-img");
+  const nextExImg = document.getElementById("next-img");
+
+  if (currImg) {
+    exImg.src = currImg;
+    exImg.style.display = "block";
+    exImg.onerror = () => exImg.style.display = "none";
+  } else exImg.style.display = "none";
+
+  if (nextImg) {
+    nextExImg.src = nextImg;
+    nextExImg.style.display = "block";
+    nextExImg.onerror = () => nextExImg.style.display = "none";
+  } else nextExImg.style.display = "none";
+}
 
     function startWorkout() {
-      document.querySelector("button").disabled = true;
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("pauseBtn").disabled = false;
       startExercise();
     }
 
@@ -53,12 +85,14 @@
           timeLeft = setRest;
           document.getElementById("exercise").innerText = `Rest Between Sets`;
           document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+          showImage(null, null);
           highlightCurrent(-1);
           tick();
         } else {
           document.getElementById("exercise").innerText = "Workout Complete!";
           document.getElementById("time").innerText = "";
           document.getElementById("next").innerText = "";
+          showImage(null, null);
           highlightCurrent(-1);
           autoSaveWorkout();
         }
@@ -69,9 +103,11 @@
       const ex = workout[currentIndex];
       timeLeft = exDuration;
       document.getElementById("exercise").innerText = `Set ${currentSet}: ${ex.name}`;
-      document.getElementById("next").innerText = (currentIndex < workout.length - 1)
-          ? `Next: ${workout[currentIndex+1].name}`
+      const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
+      document.getElementById("next").innerText = nextEx
+          ? `Next: ${nextEx.name}`
           : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
+      showImage(ex.image, nextEx ? nextEx.image : null);
       highlightCurrent(currentIndex);
       tick();
     }
@@ -80,12 +116,16 @@
       phase = "rest";
       timeLeft = restDuration;
       document.getElementById("exercise").innerText = `Rest`;
-      document.getElementById("next").innerText = `Next: ${workout[currentIndex].name}`;
+      const nextEx = workout[currentIndex];
+      document.getElementById("next").innerText = `Next: ${nextEx.name}`;
+      showImage(null, nextEx.image);
       highlightCurrent(-1);
       tick();
     }
 
     function tick() {
+      if (paused) return;
+
       if (timeLeft <= 0) {
         clearTimeout(timer);
         if (phase === "exercise") {
@@ -101,9 +141,23 @@
         }
         return;
       }
+
       document.getElementById("time").innerText = formatTime(timeLeft);
       timeLeft--;
       timer = setTimeout(tick, 1000);
+    }
+
+    function togglePause() {
+      paused = !paused;
+      const btn = document.getElementById("pauseBtn");
+
+      if (paused) {
+        btn.innerText = "Resume";
+        clearTimeout(timer);
+      } else {
+        btn.innerText = "Pause";
+        tick();
+      }
     }
 
     function formatTime(sec) {
@@ -115,19 +169,36 @@
     function highlightCurrent(index) {
       const items = document.querySelectorAll("#workoutList li");
       items.forEach((li, i) => {
-        if (i === index) {
-          li.classList.add("current");
-        } else {
-          li.classList.remove("current");
-        }
+        if (i === index) li.classList.add("current");
+        else li.classList.remove("current");
       });
+    }
+
+    function showImage(currImg, nextImg) {
+      const exImg = document.getElementById("exercise-img");
+      const nextExImg = document.getElementById("next-img");
+
+      if (currImg) {
+        exImg.src = currImg;
+        exImg.style.display = "block";
+        exImg.onerror = () => exImg.style.display = "none";
+      } else {
+        exImg.style.display = "none";
+      }
+
+      if (nextImg) {
+        nextExImg.src = nextImg;
+        nextExImg.style.display = "block";
+        nextExImg.onerror = () => nextExImg.style.display = "none";
+      } else {
+        nextExImg.style.display = "none";
+      }
     }
 
     function autoSaveWorkout() {
       fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
         .then(res => res.json())
         .then(data => {
-          console.log("Auto-save:", data);
           if (data.status === "saved") {
             document.getElementById("next").innerText = "Workout saved!";
           }

@@ -2,6 +2,11 @@
 <html>
 <head>
   <title>Workout Generator</title>
+  <style>
+    .exercise-list { display: flex; flex-wrap: wrap; gap: 20px; }
+    .exercise-card { border: 1px solid #ccc; padding: 10px; border-radius: 8px; width: 180px; text-align: center; }
+    .exercise-card img { max-width: 150px; max-height: 150px; display: block; margin: 0 auto; }
+  </style>
 </head>
 <body>
   <h1>Workout Generator</h1>
@@ -28,22 +33,24 @@
 
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}
-      <button type="submit" name="save" value="1">Save Workout (manual log)</button>
+      <button type="submit" name="save" value="1">Save Workout</button>
+      <a href="{{ url_for('timer') }}" style="margin-left:10px;">Start Timer</a>
     {% endif %}
-	{% if workout %}
-	<a href="{{ url_for('timer') }}">
-    <button type="button">Start Workout (automatic log)</button>
-	</a>
-	{% endif %}
   </form>
 
   {% if workout %}
     <h2>Your Workout</h2>
-    <ul>
+    <div class="exercise-list">
       {% for ex in workout %}
-        <li>{{ ex.name }} (ID: {{ ex.id }})</li>
+        <div class="exercise-card">
+          <p>{{ ex.name }}</p>
+		{% if ex.image %}
+		<img src="{{ url_for('static', filename=ex.image) }}" alt="{{ ex.name }}"
+			onerror="this.style.display='none'">
+		{% endif %}
+        </div>
       {% endfor %}
-    </ul>
+    </div>
     <p><strong>Total workout time: <span id="total_time">{{ total_time }}</span></strong></p>
   {% endif %}
 
@@ -74,10 +81,9 @@
       document.getElementById("total_time").innerText = `${mins}m ${secs}s`;
   }
 
-  // attach event listeners
   ["num_exercises","num_sets","ex_duration","rest_duration","set_rest"].forEach(id => {
       document.getElementById(id).addEventListener("input", recalcTotal);
   });
   </script>
 </body>
-</html> 
+</html>
