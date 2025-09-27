@@ -23,9 +23,10 @@
   <div id="next"></div>
   <img id="next-img" src="" alt="" style="display:none;">
 
+  <!-- Button order changed: Back → Start → Pause -->
+  <button onclick="location.href='{{ url_for('index') }}'">Back</button>
   <button id="startBtn" onclick="startWorkout()">Start</button>
   <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
-  <button onclick="location.href='{{ url_for('index') }}'">Back</button>
 
   <h2>Workout Plan</h2>
   <ul id="workoutList">
@@ -55,27 +56,42 @@
     let timeLeft = 0;
     let paused = false;
 
-function showImage(currImg, nextImg) {
-  const exImg = document.getElementById("exercise-img");
-  const nextExImg = document.getElementById("next-img");
+    function showImage(currImg, nextImg) {
+      const exImg = document.getElementById("exercise-img");
+      const nextExImg = document.getElementById("next-img");
 
-  if (currImg) {
-    exImg.src = currImg;
-    exImg.style.display = "block";
-    exImg.onerror = () => exImg.style.display = "none";
-  } else exImg.style.display = "none";
+      if (currImg) {
+        exImg.src = currImg;
+        exImg.style.display = "block";
+        exImg.onerror = () => exImg.style.display = "none";
+      } else exImg.style.display = "none";
 
-  if (nextImg) {
-    nextExImg.src = nextImg;
-    nextExImg.style.display = "block";
-    nextExImg.onerror = () => nextExImg.style.display = "none";
-  } else nextExImg.style.display = "none";
-}
+      if (nextImg) {
+        nextExImg.src = nextImg;
+        nextExImg.style.display = "block";
+        nextExImg.onerror = () => nextExImg.style.display = "none";
+      } else nextExImg.style.display = "none";
+    }
 
     function startWorkout() {
       document.getElementById("startBtn").disabled = true;
       document.getElementById("pauseBtn").disabled = false;
-      startExercise();
+
+      // NEW: 7s countdown before starting first exercise
+      let countdown = 7;
+      document.getElementById("exercise").innerText = "Starting in...";
+      document.getElementById("time").innerText = countdown;
+      document.getElementById("next").innerText = "";
+      showImage(null, workout[0] ? workout[0].image : null);
+
+      const countdownTimer = setInterval(() => {
+        countdown--;
+        document.getElementById("time").innerText = countdown;
+        if (countdown <= 0) {
+          clearInterval(countdownTimer);
+          startExercise();
+        }
+      }, 1000);
     }
 
     function startExercise() {
@@ -172,27 +188,6 @@ function showImage(currImg, nextImg) {
         if (i === index) li.classList.add("current");
         else li.classList.remove("current");
       });
-    }
-
-    function showImage(currImg, nextImg) {
-      const exImg = document.getElementById("exercise-img");
-      const nextExImg = document.getElementById("next-img");
-
-      if (currImg) {
-        exImg.src = currImg;
-        exImg.style.display = "block";
-        exImg.onerror = () => exImg.style.display = "none";
-      } else {
-        exImg.style.display = "none";
-      }
-
-      if (nextImg) {
-        nextExImg.src = nextImg;
-        nextExImg.style.display = "block";
-        nextExImg.onerror = () => nextExImg.style.display = "none";
-      } else {
-        nextExImg.style.display = "none";
-      }
     }
 
     function autoSaveWorkout() {
