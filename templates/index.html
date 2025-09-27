@@ -30,6 +30,11 @@
     {% if workout %}
       <button type="submit" name="save" value="1">Save Workout</button>
     {% endif %}
+	{% if workout %}
+	<a href="{{ url_for('timer') }}">
+    <button type="button">Start Timer</button>
+	</a>
+	{% endif %}
   </form>
 
   {% if workout %}

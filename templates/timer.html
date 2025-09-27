@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout Timer</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    #exercise { font-size: 2em; margin: 20px 0; }
+    #time { font-size: 3em; margin: 20px 0; }
+    #next { color: gray; margin: 10px 0; }
+    button { padding: 10px 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Workout Timer</h1>
+  <div id="exercise">Get Ready</div>
+  <div id="time">--</div>
+  <div id="next"></div>
+  <button onclick="startWorkout()">Start</button>
+  <button onclick="location.href='{{ url_for('index') }}'">Back</button>
+
+  <script>
+    const workout = {{ workout|tojson }};
+    const numSets = {{ num_sets }};
+    const exDuration = {{ ex_duration }};
+    const restDuration = {{ rest_duration }};
+    const setRest = {{ set_rest }};
+
+    let currentSet = 1;
+    let currentIndex = 0;
+    let phase = "exercise"; // "exercise" | "rest" | "setrest"
+    let timer;
+    let timeLeft = 0;
+
+    function startWorkout() {
+      document.querySelector("button").disabled = true;
+      startExercise();
+    }
+
+    function startExercise() {
+      if (currentIndex >= workout.length) {
+        if (currentSet < numSets) {
+          phase = "setrest";
+          timeLeft = setRest;
+          document.getElementById("exercise").innerText = `Rest Between Sets`;
+          document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+          tick();
+        } else {
+          document.getElementById("exercise").innerText = "Workout Complete!";
+          document.getElementById("time").innerText = "";
+          document.getElementById("next").innerText = "";
+        }
+        return;
+      }
+
+      phase = "exercise";
+      const ex = workout[currentIndex];
+      timeLeft = exDuration;
+      document.getElementById("exercise").innerText = `Set ${currentSet}: ${ex.name}`;
+      document.getElementById("next").innerText = (currentIndex < workout.length - 1)
+          ? `Next: ${workout[currentIndex+1].name}`
+          : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
+      tick();
+    }
+
+    function startRest() {
+      phase = "rest";
+      timeLeft = restDuration;
+      document.getElementById("exercise").innerText = `Rest`;
+      document.getElementById("next").innerText = `Next: ${workout[currentIndex].name}`;
+      tick();
+    }
+
+    function tick() {
+      if (timeLeft <= 0) {
+        clearTimeout(timer);
+        if (phase === "exercise") {
+          currentIndex++;
+          if (currentIndex < workout.length) startRest();
+          else startExercise();
+        } else if (phase === "rest") {
+          startExercise();
+        } else if (phase === "setrest") {
+          currentSet++;
+          currentIndex = 0;
+          startExercise();
+        }
+        return;
+      }
+      document.getElementById("time").innerText = formatTime(timeLeft);
+      timeLeft--;
+      timer = setTimeout(tick, 1000);
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s.toString().padStart(2,"0")}`;
+    }
+  </script>
+</body>
+</html>

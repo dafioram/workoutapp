@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, jsonify, redirect, url_for
 import os, json, random, datetime
 from collections import defaultdict
 
@@ -67,6 +67,24 @@ def format_time(seconds):
     mins, sec = divmod(seconds, 60)
     return f"{mins}m {sec}s"
 
+@app.route("/timer")
+def timer():
+    workout = session.get("current_workout")
+    if not workout:
+        return redirect(url_for("index"))
+
+    num_sets = session.get("num_sets", 1)
+    ex_duration = session.get("ex_duration", 30)
+    rest_duration = session.get("rest_duration", 15)
+    set_rest = session.get("set_rest", 60)
+
+    return render_template("timer.html",
+                           workout=workout,
+                           num_sets=num_sets,
+                           ex_duration=ex_duration,
+                           rest_duration=rest_duration,
+                           set_rest=set_rest)
+
 @app.route('/exercises')
 def exercises():
     import glob
@@ -109,6 +127,11 @@ def index():
     if workout:
         total_time_sec = calculate_total_time(num_exercises, num_sets, ex_duration, rest_duration, set_rest)
         total_time = format_time(total_time_sec)
+        
+        session["num_sets"] = num_sets
+        session["ex_duration"] = ex_duration
+        session["rest_duration"] = rest_duration
+        session["set_rest"] = set_rest
 
     return render_template("index.html", workout=workout,
                            num_exercises=num_exercises,
