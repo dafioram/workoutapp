@@ -10,10 +10,24 @@ WORKOUT_LOG = "workout_log.json"
 
 def load_exercises():
     exercises = []
+    
     for file in os.listdir(EXERCISE_DIR):
         if file.endswith(".json"):
-            with open(os.path.join(EXERCISE_DIR, file)) as f:
-                exercises.append(json.load(f))
+            fpath = os.path.join(EXERCISE_DIR, file)
+            with open(fpath, 'r') as f:
+                exercise_active = True
+                exercise_loaded = json.load(f)
+                if "active" in exercise_loaded:
+                    if exercise_loaded["active"] == False:
+                        exercise_active = False
+
+                new_field = "intensity"
+                default_val = 5
+                if new_field not in exercise_loaded:
+                    exercise_loaded[new_field] = default_val
+                if exercise_active:
+                    exercises.append(exercise_loaded)
+
     return exercises
 
 def load_workouts():
@@ -30,7 +44,10 @@ def save_workout(workout, num_sets, ex_duration, rest_duration, set_rest):
         "num_sets": num_sets,
         "exercise_duration": ex_duration,
         "rest_duration": rest_duration,
-        "set_rest": set_rest
+        "location": "home",
+        "RPE": 5,
+        "set_rest": set_rest,
+        "notes": ""
     }
     data = load_workouts()
     data.append(entry)
@@ -54,11 +71,8 @@ def format_time(seconds):
 def exercises():
     import glob
 
-    exercise_files = glob.glob("exercises/*.json")
-    exercises = []
-    for fpath in exercise_files:
-        with open(fpath, 'r') as f:
-            exercises.append(json.load(f))
+    #exercise_files = glob.glob("exercises/*.json")
+    exercises = load_exercises()
 
     # sort by muscle
     grouped = {}
