@@ -1,46 +1,12 @@
 <!doctype html>
 <html>
 <head>
-
-<!-- Unified Progress Bar -->
-<div class="progress-wrapper">
-  {% for s in range(num_sets) %}
-    <div class="set-segment" id="set-{{s}}">
-      <div class="fill" id="set-fill-{{s}}"></div>
-    </div>
-  {% endfor %}
-</div>
-
-<style>
-.progress-wrapper {
-  display: flex;
-  gap: 4px; /* space between sets */
-  margin: 20px auto;
-  width: 80%;
-  height: 25px;
-}
-
-.set-segment {
-  flex: 1; /* each set is equal width */
-  background: #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-  position: relative;
-}
-
-.fill {
-  background: linear-gradient(90deg, #4caf50, #2e7d32);
-  height: 100%;
-  width: 0%; /* updated by JS */
-  transition: width 0.5s ease;
-}
-</style>
-
   <title>Workout Timer</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 20px; }
+    body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
     #exercise { font-size: 2em; margin: 20px 0; }
     #time { font-size: 3em; margin: 20px 0; }
+    #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
     #next { color: gray; margin: 10px 0; }
     #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
     #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
@@ -48,14 +14,55 @@
     ul { text-align: left; display: inline-block; margin-top: 30px; }
     li { margin: 5px 0; }
     .current { font-weight: bold; color: darkred; }
-    .progress-container { margin: 15px auto; width: 80%; }
-    progress { width: 100%; height: 25px; }
-    label { font-weight: bold; display: block; margin: 8px 0 4px; }
+    /* Phase backgrounds */
+    .exercise-phase { background: #d4edda; } /* green tint */
+    .rest-phase { background: #ffeeba; }     /* yellow tint */
+    .setrest-phase { background: #d1ecf1; }  /* blue tint */
+    .complete-phase { background: #e2e3e5; } /* gray tint */
+    /* Progress bar */
+    #progressContainer { width: 80%; height: 30px; margin: 20px auto; background: #eee; border-radius: 5px; overflow: hidden; }
+    #progressBar { height: 100%; width: 0%; background: green; transition: width 0.25s; }
+#overallContainer {
+  position: relative;
+  width: 80%;
+  height: 20px;
+  margin: 20px auto;
+  background: repeating-linear-gradient(
+    to right,
+    #eee,
+    #eee calc((100% / {{ num_sets }}) - 2px),
+    white calc((100% / {{ num_sets }}) - 2px),
+    white calc(100% / {{ num_sets }})
+  );
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+#overallProgress {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: linear-gradient(to right, #4caf50, #81c784);
+  border-radius: 5px;
+  transition: width 0.25s;
+}
+}
   </style>
 </head>
 <body>
   <h1>Workout Timer</h1>
-  <div id="exercise">Get Ready</div>
+<!-- Overall workout progress bar -->
+<!-- Combined overall workout progress bar -->
+<div id="overallContainer">
+  <div id="overallProgress"></div>
+</div>
+
+<!-- Per-phase progress bar -->
+<div id="progressContainer">
+  <div id="progressBar"></div>
+</div>
+  <div id="phaseLabel">Get Ready</div>
+  <div id="exercise">--</div>
   <img id="exercise-img" src="" alt="" style="display:none">
   <div id="time">--</div>
   <div id="next"></div>
@@ -81,178 +88,208 @@
       }{% if not loop.last %},{% endif %}
     {% endfor %}
   ];
-    const numSets = {{ num_sets }};
-    const exDuration = {{ ex_duration }};
-    const restDuration = {{ rest_duration }};
-    const setRest = {{ set_rest }};
-    const totalExercises = workout.length;
+  const numSets = {{ num_sets }};
+  const exDuration = {{ ex_duration }};
+  const restDuration = {{ rest_duration }};
+  const setRest = {{ set_rest }};
 
-    let currentSet = 1;
-    let currentIndex = 0;
-    let phase = "exercise";
-    let timer;
-    let timeLeft = 0;
-    let paused = false;
+  let currentSet = 1;
+  let currentIndex = 0;
+  let phase = "ready";
+  let timer;
+  let timeLeft = 0;
+  let paused = false;
 
-function updateProgress() {
-  // Fill current set’s progress
-  const percent = (currentIndex / totalExercises) * 100;
-  document.getElementById(`set-fill-${currentSet-1}`).style.width = percent + "%";
+  // Preload beep sounds
+  const beepShort = new Audio("{{ url_for('static', filename='sounds/beep_short.mp3') }}");
+  const beepLong = new Audio("{{ url_for('static', filename='sounds/beep_long.mp3') }}");
 
-  // Past sets should be 100%
-  for (let s = 0; s < currentSet-1; s++) {
-    document.getElementById(`set-fill-${s}`).style.width = "100%";
+  function playBeep(type) {
+    if (type === "exercise") beepLong.play().catch(()=>{});
+    else beepShort.play().catch(()=>{});
   }
+
+function updateOverallProgress() {
+  // total phases per set = exercises + rests (but no rest after last exercise)
+  const phasesPerSet = workout.length * 2 - 1;
+  const totalPhases = phasesPerSet * numSets + (numSets - 1); // + set rests
+  let completedPhases = (currentSet - 1) * phasesPerSet + currentIndex * 2;
+  
+  // if in rest phase, add 1
+  if (phase === "rest") completedPhases++;
+  // if between sets, add the set-rest
+  if (phase === "setrest") completedPhases += 1;
+
+  const percent = (completedPhases / totalPhases) * 100;
+  document.getElementById("overallProgress").style.width = percent + "%";
 }
 
-    function showImage(currImg, nextImg) {
-      const exImg = document.getElementById("exercise-img");
-      const nextExImg = document.getElementById("next-img");
+function tick() {
+  if (paused) return;
 
-      if (currImg) {
-        exImg.src = currImg;
-        exImg.style.display = "block";
-        exImg.onerror = () => exImg.style.display = "none";
-      } else exImg.style.display = "none";
-
-      if (nextImg) {
-        nextExImg.src = nextImg;
-        nextExImg.style.display = "block";
-        nextExImg.onerror = () => nextExImg.style.display = "none";
-      } else nextExImg.style.display = "none";
+  if (timeLeft <= 0) {
+    clearTimeout(timer);
+    if (phase === "countdown") {
+      startExercise();
+    } else if (phase === "exercise") {
+      currentIndex++;
+      if (currentIndex < workout.length) startRest();
+      else startExercise();
+    } else if (phase === "rest") {
+      startExercise();
+    } else if (phase === "setrest") {
+      currentSet++;
+      currentIndex = 0;
+      startExercise();
     }
+    return;
+  }
 
-    function startWorkout() {
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("pauseBtn").disabled = false;
+  document.getElementById("time").innerText = formatTime(timeLeft);
 
-      let countdown = 7;
-      document.getElementById("exercise").innerText = "Starting in...";
-      document.getElementById("time").innerText = countdown;
-      document.getElementById("next").innerText = "";
-      showImage(null, workout[0] ? workout[0].image : null);
+  // update per-phase progress bar
+  let total = (phase === "exercise") ? exDuration :
+              (phase === "rest") ? restDuration :
+              (phase === "setrest") ? setRest :
+              (phase === "countdown") ? 7 : 1;
+  let percent = ((total - timeLeft) / total) * 100;
+  document.getElementById("progressBar").style.width = percent + "%";
 
-      const countdownTimer = setInterval(() => {
-        countdown--;
-        document.getElementById("time").innerText = countdown;
-        if (countdown <= 0) {
-          clearInterval(countdownTimer);
-          startExercise();
-        }
-      }, 1000);
-    }
+  // update overall progress bar
+  updateOverallProgress();
 
-    function startExercise() {
-      if (currentIndex >= workout.length) {
-        if (currentSet < numSets) {
-          phase = "setrest";
-          timeLeft = setRest;
-          document.getElementById("exercise").innerText = `Rest Between Sets (Set ${currentSet}/${numSets})`;
-          document.getElementById("next").innerText = `Next: Set ${currentSet+1}/${numSets}`;
-          showImage(null, null);
-          highlightCurrent(-1);
-          updateProgress();
-          tick();
-        } else {
-          document.getElementById("exercise").innerText = "Workout Complete!";
-          document.getElementById("time").innerText = "";
-          document.getElementById("next").innerText = "";
-          showImage(null, null);
-          highlightCurrent(-1);
-          updateProgress();
-          autoSaveWorkout();
-        }
-        return;
-      }
+  timeLeft--;
+  timer = setTimeout(tick, 1000);
+}
 
-      phase = "exercise";
-      const ex = workout[currentIndex];
-      timeLeft = exDuration;
-      document.getElementById("exercise").innerText =
-        `Set ${currentSet}/${numSets} — Exercise ${currentIndex+1}/${totalExercises}: ${ex.name}`;
-      const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
-      document.getElementById("next").innerText = nextEx
-          ? `Next: Exercise ${currentIndex+2}/${totalExercises} — ${nextEx.name}`
-          : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
-      showImage(ex.image, nextEx ? nextEx.image : null);
-      highlightCurrent(currentIndex);
-      updateProgress();
-      tick();
-    }
+  function updatePhaseDisplay(label, phaseClass, barColor) {
+    document.getElementById("phaseLabel").innerText = label;
+    document.body.className = phaseClass;
+    document.getElementById("progressBar").style.background = barColor;
+  }
 
-    function startRest() {
-      phase = "rest";
-      timeLeft = restDuration;
-      const nextEx = workout[currentIndex];
-      document.getElementById("exercise").innerText =
-        `Rest (Set ${currentSet}/${numSets}, Next: Exercise ${currentIndex+1}/${totalExercises})`;
-      document.getElementById("next").innerText = `Next: ${nextEx.name}`;
-      showImage(null, nextEx.image);
-      highlightCurrent(-1);
-      updateProgress();
-      tick();
-    }
+  function startWorkout() {
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("pauseBtn").disabled = false;
+    // 7 second countdown
+    phase = "countdown";
+    timeLeft = 7;
+    updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
+    document.getElementById("exercise").innerText = "Starting soon...";
+    document.getElementById("time").innerText = timeLeft;
+    tick();
+  }
 
-    function tick() {
-      if (paused) return;
-
-      if (timeLeft <= 0) {
-        clearTimeout(timer);
-        if (phase === "exercise") {
-          currentIndex++;
-          if (currentIndex < workout.length) startRest();
-          else startExercise();
-        } else if (phase === "rest") {
-          startExercise();
-        } else if (phase === "setrest") {
-          currentSet++;
-          currentIndex = 0;
-          startExercise();
-        }
-        return;
-      }
-
-      document.getElementById("time").innerText = formatTime(timeLeft);
-      timeLeft--;
-      timer = setTimeout(tick, 1000);
-    }
-
-    function togglePause() {
-      paused = !paused;
-      const btn = document.getElementById("pauseBtn");
-
-      if (paused) {
-        btn.innerText = "Resume";
-        clearTimeout(timer);
-      } else {
-        btn.innerText = "Pause";
+  function startExercise() {
+    if (currentIndex >= workout.length) {
+      if (currentSet < numSets) {
+        phase = "setrest";
+        timeLeft = setRest;
+        updatePhaseDisplay("Rest Between Sets", "setrest-phase", "blue");
+        document.getElementById("exercise").innerText = `Set Rest (${currentSet}/${numSets})`;
+        document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+        showImage(null, null);
+        highlightCurrent(-1);
+        playBeep("rest");
         tick();
+      } else {
+        phase = "complete";
+        updatePhaseDisplay("Workout Complete!", "complete-phase", "gray");
+        document.getElementById("exercise").innerText = "Done!";
+        document.getElementById("time").innerText = "";
+        document.getElementById("next").innerText = "";
+        showImage(null, null);
+        highlightCurrent(-1);
+        autoSaveWorkout();
       }
+      return;
     }
 
-    function formatTime(sec) {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${m}:${s.toString().padStart(2,"0")}`;
+    phase = "exercise";
+    const ex = workout[currentIndex];
+    timeLeft = exDuration;
+    updatePhaseDisplay("EXERCISE!", "exercise-phase", "green");
+    document.getElementById("exercise").innerText = `Set ${currentSet}/${numSets} - Exercise ${currentIndex+1}/${workout.length}: ${ex.name}`;
+    const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
+    document.getElementById("next").innerText = nextEx
+        ? `Next: ${nextEx.name}`
+        : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
+    showImage(ex.image, nextEx ? nextEx.image : null);
+    highlightCurrent(currentIndex);
+    playBeep("exercise");
+    tick();
+  }
+
+  function startRest() {
+    phase = "rest";
+    timeLeft = restDuration;
+    updatePhaseDisplay("REST", "rest-phase", "orange");
+    document.getElementById("exercise").innerText = `Rest`;
+    const nextEx = workout[currentIndex];
+    document.getElementById("next").innerText = `Next: ${nextEx.name}`;
+    showImage(null, nextEx.image);
+    highlightCurrent(-1);
+    playBeep("rest");
+    tick();
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById("pauseBtn");
+
+    if (paused) {
+      btn.innerText = "Resume";
+      clearTimeout(timer);
+    } else {
+      btn.innerText = "Pause";
+      tick();
+    }
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2,"0")}`;
+  }
+
+  function highlightCurrent(index) {
+    const items = document.querySelectorAll("#workoutList li");
+    items.forEach((li, i) => {
+      if (i === index) li.classList.add("current");
+      else li.classList.remove("current");
+    });
+  }
+
+  function showImage(currImg, nextImg) {
+    const exImg = document.getElementById("exercise-img");
+    const nextExImg = document.getElementById("next-img");
+
+    if (currImg) {
+      exImg.src = currImg;
+      exImg.style.display = "block";
+      exImg.onerror = () => exImg.style.display = "none";
+    } else {
+      exImg.style.display = "none";
     }
 
-    function highlightCurrent(index) {
-      const items = document.querySelectorAll("#workoutList li");
-      items.forEach((li, i) => {
-        if (i === index) li.classList.add("current");
-        else li.classList.remove("current");
+    if (nextImg) {
+      nextExImg.src = nextImg;
+      nextExImg.style.display = "block";
+      nextExImg.onerror = () => nextExImg.style.display = "none";
+    } else {
+      nextExImg.style.display = "none";
+    }
+  }
+
+  function autoSaveWorkout() {
+    fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "saved") {
+          document.getElementById("next").innerText = "Workout saved!";
+        }
       });
-    }
-
-    function autoSaveWorkout() {
-      fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "saved") {
-            document.getElementById("next").innerText = "Workout saved!";
-          }
-        });
-    }
+  }
   </script>
 </body>
 </html>
