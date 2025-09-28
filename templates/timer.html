@@ -23,20 +23,22 @@
     #progressContainer { width: 80%; height: 30px; margin: 20px auto; background: #eee; border-radius: 5px; overflow: hidden; }
     #progressBar { height: 100%; width: 0%; background: green; transition: width 0.25s; }
 #overallContainer {
-  position: relative;
+  display: flex;
   width: 80%;
   height: 20px;
   margin: 20px auto;
-  background: repeating-linear-gradient(
-    to right,
-    #eee,
-    #eee calc((100% / {{ num_sets }}) - 2px),
-    white calc((100% / {{ num_sets }}) - 2px),
-    white calc(100% / {{ num_sets }})
-  );
   border-radius: 5px;
   overflow: hidden;
 }
+.segment {
+  flex-grow: 1;
+  height: 100%;
+  opacity: 0.3;
+}
+.segment.exercise { background: #4caf50; } /* green */
+.segment.rest { background: #ffc107; }     /* yellow */
+.segment.setrest { background: #17a2b8; }  /* blue */
+.segment.done { opacity: 1; }
 
 #overallProgress {
   position: absolute;
@@ -46,16 +48,13 @@
   border-radius: 5px;
   transition: width 0.25s;
 }
-}
   </style>
 </head>
 <body>
   <h1>Workout Timer</h1>
 <!-- Overall workout progress bar -->
 <!-- Combined overall workout progress bar -->
-<div id="overallContainer">
-  <div id="overallProgress"></div>
-</div>
+<div id="overallContainer"></div>
 
 <!-- Per-phase progress bar -->
 <div id="progressContainer">
@@ -109,19 +108,51 @@
     else beepShort.play().catch(()=>{});
   }
 
-function updateOverallProgress() {
-  // total phases per set = exercises + rests (but no rest after last exercise)
-  const phasesPerSet = workout.length * 2 - 1;
-  const totalPhases = phasesPerSet * numSets + (numSets - 1); // + set rests
-  let completedPhases = (currentSet - 1) * phasesPerSet + currentIndex * 2;
-  
-  // if in rest phase, add 1
-  if (phase === "rest") completedPhases++;
-  // if between sets, add the set-rest
-  if (phase === "setrest") completedPhases += 1;
+function buildOverallBar() {
+  const container = document.getElementById("overallContainer");
+  container.innerHTML = "";
+  for (let s = 1; s <= numSets; s++) {
+    for (let i = 0; i < workout.length; i++) {
+      let seg = document.createElement("div");
+      seg.className = "segment exercise";
+      container.appendChild(seg);
+      if (i < workout.length - 1) {
+        let restSeg = document.createElement("div");
+        restSeg.className = "segment rest";
+        container.appendChild(restSeg);
+      }
+    }
+    if (s < numSets) {
+      let setRestSeg = document.createElement("div");
+      setRestSeg.className = "segment setrest";
+      container.appendChild(setRestSeg);
+    }
+  }
+}
 
-  const percent = (completedPhases / totalPhases) * 100;
-  document.getElementById("overallProgress").style.width = percent + "%";
+function updateOverallProgress() {
+  const segments = document.querySelectorAll("#overallContainer .segment");
+  let idx = 0;
+  for (let s = 1; s <= numSets; s++) {
+    for (let i = 0; i < workout.length; i++) {
+      if (s < currentSet || (s === currentSet && i < currentIndex && phase !== "rest")) {
+        segments[idx].classList.add("done");
+      }
+      idx++;
+      if (i < workout.length - 1) {
+        if (s < currentSet || (s === currentSet && i < currentIndex && phase === "rest")) {
+          segments[idx].classList.add("done");
+        }
+        idx++;
+      }
+    }
+    if (s < numSets) {
+      if (s < currentSet || (phase === "setrest" && s === currentSet)) {
+        segments[idx].classList.add("done");
+      }
+      idx++;
+    }
+  }
 }
 
 function tick() {
@@ -290,6 +321,9 @@ function tick() {
         }
       });
   }
+document.addEventListener("DOMContentLoaded", () => {
+  buildOverallBar();
+});
   </script>
 </body>
 </html>
