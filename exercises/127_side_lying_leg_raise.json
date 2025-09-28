@@ -1,0 +1,15 @@
+{
+	"id": 127,
+	"name": "Side-Lying Leg Raise",
+	"muscle": "hip abductors",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "ankle weights",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/side_lying_leg_raise.png",
+	"description": "Lie on your side with legs extended. Lift your top leg upward while keeping it straight, then lower it back down under control."
+}
