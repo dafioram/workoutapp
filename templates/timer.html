@@ -39,6 +39,10 @@
 .segment.rest { background: #ffc107; }     /* yellow */
 .segment.setrest { background: #17a2b8; }  /* blue */
 .segment.done { opacity: 1; }
+.segment.active {
+  opacity: 1;
+  outline: 2px solid black; /* makes current block pop */
+}
 
 #overallProgress {
   position: absolute;
@@ -133,22 +137,43 @@ function buildOverallBar() {
 function updateOverallProgress() {
   const segments = document.querySelectorAll("#overallContainer .segment");
   let idx = 0;
+
   for (let s = 1; s <= numSets; s++) {
     for (let i = 0; i < workout.length; i++) {
-      if (s < currentSet || (s === currentSet && i < currentIndex && phase !== "rest")) {
-        segments[idx].classList.add("done");
+      // Exercise block
+      let seg = segments[idx];
+      seg.className = "segment exercise";
+
+      if (s < currentSet || (s === currentSet && i < currentIndex)) {
+        seg.classList.add("done");       // past exercises
+      } else if (s === currentSet && i === currentIndex && phase === "exercise") {
+        seg.classList.add("active");     // currently exercising
       }
       idx++;
+
+      // Rest block (except after last exercise)
       if (i < workout.length - 1) {
-        if (s < currentSet || (s === currentSet && i < currentIndex && phase === "rest")) {
-          segments[idx].classList.add("done");
+        seg = segments[idx];
+        seg.className = "segment rest";
+
+	  if (s < currentSet || (s === currentSet && i < currentIndex && phase === "exercise") || (s === currentSet && i < currentIndex - 1 && phase === "rest")) {
+		seg.classList.add("done");       // past rests
+        } else if (s === currentSet && i === currentIndex - 1 && phase === "rest") {
+          seg.classList.add("active");     // currently resting
         }
         idx++;
       }
     }
+
+    // Between-set rest
     if (s < numSets) {
-      if (s < currentSet || (phase === "setrest" && s === currentSet)) {
-        segments[idx].classList.add("done");
+      let seg = segments[idx];
+      seg.className = "segment setrest";
+
+      if (s < currentSet) {
+        seg.classList.add("done");         // completed set rests
+      } else if (s === currentSet && phase === "setrest") {
+        seg.classList.add("active");       // current set rest
       }
       idx++;
     }
