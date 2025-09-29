@@ -1,0 +1,15 @@
+{
+	"id": 143,
+	"name": "Lateral Shuffle Taps",
+	"muscle": "legs",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/lateral_shuffle_taps.png",
+	"description": "Start in an athletic stance with knees bent and chest up. Quickly shuffle laterally a few steps, then reach down with your hand to tap the floor."
+}

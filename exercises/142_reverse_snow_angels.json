@@ -1,0 +1,15 @@
+{
+	"id": 142,
+	"name": "Reverse Snow Angels",
+	"muscle": "back",
+	"body_part": "upper",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 3,
+	"image": "exercises/reverse_snow_angels.png",
+	"description": "Lie face down with arms at your sides, palms facing down. Lift your chest slightly off the ground and sweep your arms in a wide arc overhead, then return them to your sides, mimicking a snow angel motion."
+}
