@@ -5,7 +5,7 @@ from collections import defaultdict
 app = Flask(__name__)
 app.secret_key = "supersecret"
 
-USER = "david"
+USER = "Bruno"
 EXERCISE_DIR = "exercises"
 WORKOUT_LOG = "workout_log" + "_" + USER + ".json"
 
