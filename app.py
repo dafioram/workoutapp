@@ -5,7 +5,7 @@ from collections import defaultdict
 app = Flask(__name__)
 app.secret_key = "supersecret"
 
-USER = "dev"
+USER = "david"
 EXERCISE_DIR = "exercises"
 WORKOUT_LOG = "workout_log" + "_" + USER + ".json"
 
@@ -108,7 +108,6 @@ def save_current_workout():
 def exercises():
     import glob
 
-    #exercise_files = glob.glob("exercises/*.json")
     exercises = load_exercises()
 
     # sort by muscle
@@ -123,30 +122,78 @@ def exercises():
 def index():
     exercises = load_exercises()
     workout = session.get("current_workout", [])
-    num_exercises = int(request.form.get("num_exercises", 5))
-    num_sets = int(request.form.get("num_sets", 1))
-    ex_duration = int(request.form.get("ex_duration", 30))
-    rest_duration = int(request.form.get("rest_duration", 15))
-    set_rest_input = float(request.form.get("set_rest", 1))
+    # parse posted form values robustly; if missing, use defaults or previously stored
+    try:
+        num_exercises = int(request.form.get("num_exercises", 5))
+    except ValueError:
+        num_exercises = 5
+    try:
+        num_sets = int(request.form.get("num_sets", session.get("num_sets", 1)))
+    except ValueError:
+        num_sets = session.get("num_sets", 1)
+    try:
+        ex_duration = int(request.form.get("ex_duration", session.get("ex_duration", 30)))
+    except ValueError:
+        ex_duration = session.get("ex_duration", 30)
+    try:
+        rest_duration = int(request.form.get("rest_duration", session.get("rest_duration", 15)))
+    except ValueError:
+        rest_duration = session.get("rest_duration", 15)
+    try:
+        set_rest_input = float(request.form.get("set_rest", session.get("set_rest", 60) / 60))
+    except ValueError:
+        set_rest_input = session.get("set_rest", 60) / 60.0
     set_rest = int(set_rest_input * 60)
     message = ""
     total_time = 0
 
     if request.method == "POST":
+        # 1) Generate new random workout
         if "generate" in request.form:
             workout = random.sample(exercises, min(num_exercises, len(exercises)))
+            # store in session immediately
             session["current_workout"] = workout
+            # store timing/settings so Start picks them up
+            session["num_sets"] = num_sets
+            session["ex_duration"] = ex_duration
+            session["rest_duration"] = rest_duration
+            session["set_rest"] = set_rest
             message = ""
+
+        # 2) Start timer: apply ordering (if any), store session, redirect to timer
+        elif "start" in request.form and workout:
+            exercise_order = request.form.get("exercise_order")
+            if exercise_order:
+                order_indices = [int(i) for i in exercise_order.split(",") if i.strip().isdigit()]
+                # validate each index is in range
+                if len(order_indices) == len(workout) and all(0 <= i < len(workout) for i in order_indices):
+                    workout = [workout[i] for i in order_indices]
+            # store session values and redirect to timer
+            session["current_workout"] = workout
+            session["num_sets"] = num_sets
+            session["ex_duration"] = ex_duration
+            session["rest_duration"] = rest_duration
+            session["set_rest"] = set_rest
+            return redirect(url_for("timer"))
+
+        # 3) Save from index form
         elif "save" in request.form and workout:
+            exercise_order = request.form.get("exercise_order")
+            if exercise_order:
+                order_indices = [int(i) for i in exercise_order.split(",") if i.strip().isdigit()]
+                if len(order_indices) == len(workout) and all(0 <= i < len(workout) for i in order_indices):
+                    workout = [workout[i] for i in order_indices]
+                    session["current_workout"] = workout
+
             save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
             session.pop("current_workout", None)
             workout = []
             message = "Workout Saved!"
 
+    # compute total time and persist settings to session if workout exists
     if workout:
-        total_time_sec = calculate_total_time(num_exercises, num_sets, ex_duration, rest_duration, set_rest)
+        total_time_sec = calculate_total_time(len(workout), num_sets, ex_duration, rest_duration, set_rest)
         total_time = format_time(total_time_sec)
-        
         session["num_sets"] = num_sets
         session["ex_duration"] = ex_duration
         session["rest_duration"] = rest_duration
@@ -277,4 +324,4 @@ def analysis():
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port = 5000, debug=True) 
+    app.run(host="0.0.0.0", port = 5000, debug=True)
