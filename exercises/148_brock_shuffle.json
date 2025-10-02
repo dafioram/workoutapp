@@ -8,7 +8,7 @@
     "type": "cardio",
     "equipment": "none",
     "link": "",
-    "active": true,
+    "active": false,
     "alternate_name": "",
     "intensity": 4,
     "image": "exercises/brock_shuffle.png",
