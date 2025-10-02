@@ -1,0 +1,17 @@
+{
+    "id": 162,
+    "name": "Standing Oblique",
+    "muscle": "abs",
+    "body_part": "abs",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/standing_obliques.png",
+    "description": "Start standing with your hands behind your head and then crunch to one side and raise that same knee up to meet your elbow."
+}

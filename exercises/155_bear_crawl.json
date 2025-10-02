@@ -1,0 +1,16 @@
+{
+    "id": 155,
+    "name": "Bear Crawl",
+    "muscle": "legs",
+    "body_part": "lower body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/bear_crawl.png",
+    "description": "Walk forward on all fours."
+}

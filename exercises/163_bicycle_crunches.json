@@ -1,0 +1,17 @@
+{
+    "id": 163,
+    "name": "Bicycle Crunches",
+    "muscle": "abs",
+    "body_part": "abs",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/bicycle_crunches.png",
+    "description": "Lie down on your back with your hands behind your head. Alternate turning your head and tapping your elbow and opposite knee."
+}

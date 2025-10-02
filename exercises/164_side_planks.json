@@ -1,0 +1,17 @@
+{
+    "id": 164,
+    "name": "Side Planks",
+    "muscle": "abs",
+    "body_part": "abs",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/side_planks.png",
+    "description": "Hold a plank on your side."
+}
