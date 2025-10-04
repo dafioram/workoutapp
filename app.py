@@ -7,7 +7,8 @@ app.secret_key = "supersecret"
 
 USER = "Bruno"
 EXERCISE_DIR = "exercises"
-WORKOUT_LOG = "workout_log" + "_" + USER + ".json"
+WORKOUT_LOG_DIR = "workout_log"
+WORKOUT_LOG = os.path.join(WORKOUT_LOG_DIR, "workout_log_" + USER + ".json")
 
 def load_exercises():
     exercises = []
@@ -38,6 +39,7 @@ def load_workouts():
         return []
 
 def save_workout(workout, num_sets, ex_duration, rest_duration, set_rest):
+    os.makedirs(WORKOUT_LOG_DIR, exist_ok=True)
     slimmed = [{"id": ex["id"], "name": ex["name"]} for ex in workout]
     entry = {
         "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
