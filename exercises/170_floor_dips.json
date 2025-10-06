@@ -1,0 +1,16 @@
+{
+    "id": 170,
+    "name": "Floor Dips",
+    "muscle": "triceps",
+    "body_part": "upper body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/floor_dips.png",
+    "description": "Sit on the floor with legs extended, put your arms down and bend them then push up."
+}
