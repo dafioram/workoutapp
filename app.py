@@ -223,6 +223,10 @@ def history():
         w["total_time"] = format_time(total_sec)
     return render_template("history.html", workouts=workouts)
 
+@app.route("/warm_up")
+def warm_up():
+    return render_template("warm_up.html")
+
 @app.route('/analysis')
 def analysis():
     import glob
