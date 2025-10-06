@@ -5,7 +5,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Workout Analysis</h1>
+  <h1>Workout Analysis for {{ username }}</h1>
   <nav>
     <a href="{{ url_for('index') }}">Generator</a> |
     <a href="{{ url_for('history') }}">History</a> |
@@ -29,16 +29,12 @@
   <canvas id="muscleChart"></canvas>
 
   <script>
-    // Data from Flask
     const trendLabels = {{ trend_labels|tojson }};
     const trendExercise = {{ trend_exercise|tojson }};
     const trendRest = {{ trend_rest|tojson }};
     const weekly = {{ weekly|tojson }};
     const monthly = {{ monthly|tojson }};
-
     let currentView = "week";
-
-    // Trend chart (always per workout, not bucketed)
     const trendChart = new Chart(
       document.getElementById('trendChart'),
       {
@@ -52,16 +48,12 @@
         }
       }
     );
-
-    // Utility: extract totals from buckets
     function buildTotals(data) {
       const labels = Object.keys(data).sort();
       const exercise = labels.map(l => data[l].exercise);
       const rest = labels.map(l => data[l].rest);
       return { labels, exercise, rest };
     }
-
-    // Utility: muscle breakdown
     function buildMuscles(data) {
       const labels = Object.keys(data).sort();
       const muscleSet = new Set();
@@ -74,8 +66,6 @@
       }));
       return { labels, datasets };
     }
-
-    // Init total chart
     let totals = buildTotals(weekly);
     const totalChart = new Chart(
       document.getElementById('totalChart'),
@@ -91,8 +81,6 @@
         options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
       }
     );
-
-    // Init muscle chart
     let muscles = buildMuscles(weekly);
     const muscleChart = new Chart(
       document.getElementById('muscleChart'),
@@ -102,18 +90,14 @@
         options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
       }
     );
-
-    // Switch view
     function setView(view) {
       currentView = view;
       const data = (view === "week") ? weekly : monthly;
-
       let totals = buildTotals(data);
       totalChart.data.labels = totals.labels;
       totalChart.data.datasets[0].data = totals.exercise;
       totalChart.data.datasets[1].data = totals.rest;
       totalChart.update();
-
       let muscles = buildMuscles(data);
       muscleChart.data.labels = muscles.labels;
       muscleChart.data.datasets = muscles.datasets;
