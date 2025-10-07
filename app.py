@@ -8,10 +8,18 @@ app.secret_key = "supersecret"
 EXERCISE_DIR = "exercises"
 WORKOUT_LOG_DIR = "workout_log"
 
-# Helper to get workout log path based on username
 def get_workout_log_path():
-    username = session.get("username", "Bruno")  # Default to Bruno
+    username = session.get("username", "Bruno")
     return os.path.join(WORKOUT_LOG_DIR, f"workout_log_{username}.json")
+
+def get_existing_users():
+    os.makedirs(WORKOUT_LOG_DIR, exist_ok=True)
+    users = []
+    for file in os.listdir(WORKOUT_LOG_DIR):
+        if file.startswith("workout_log_") and file.endswith(".json"):
+            username = file[len("workout_log_"):-len(".json")]
+            users.append(username)
+    return sorted(users)
 
 def load_exercises():
     exercises = []
@@ -82,7 +90,8 @@ def timer():
                            num_sets=num_sets,
                            ex_duration=ex_duration,
                            rest_duration=rest_duration,
-                           set_rest=set_rest)
+                           set_rest=set_rest,
+                           username=session.get("username", "Bruno"))
 
 @app.route("/save_current_workout", methods=["POST"])
 def save_current_workout():
@@ -111,10 +120,8 @@ def exercises():
 def index():
     exercises = load_exercises()
     workout = session.get("current_workout", [])
-    # Set default username if not in session
     if "username" not in session:
         session["username"] = "Bruno"
-    # parse posted form values robustly; if missing, use defaults or previously stored
     try:
         num_exercises = int(request.form.get("num_exercises", 5))
     except ValueError:
@@ -138,12 +145,14 @@ def index():
     set_rest = int(set_rest_input * 60)
     message = ""
     total_time = 0
-    # Update username from form if provided
-    if request.form.get("username"):
-        session["username"] = request.form.get("username").strip() or "Bruno"  # Fallback to Bruno if empty
+    # Update username: prioritize new_username if provided, else use dropdown selection
+    new_username = request.form.get("new_username", "").strip()
+    if new_username:
+        session["username"] = new_username or "Bruno"  # Fallback to Bruno if empty
+    elif request.form.get("username"):
+        session["username"] = request.form.get("username") or "Bruno"
 
     if request.method == "POST":
-        # 1) Generate new random workout
         if "generate" in request.form:
             workout = random.sample(exercises, min(num_exercises, len(exercises)))
             session["current_workout"] = workout
@@ -152,7 +161,6 @@ def index():
             session["rest_duration"] = rest_duration
             session["set_rest"] = set_rest
             message = ""
-        # 2) Start timer: apply ordering (if any), store session, redirect to timer
         elif "start" in request.form and workout:
             exercise_order = request.form.get("exercise_order")
             if exercise_order:
@@ -165,7 +173,6 @@ def index():
             session["rest_duration"] = rest_duration
             session["set_rest"] = set_rest
             return redirect(url_for("timer"))
-        # 3) Save from index form
         elif "save" in request.form and workout:
             exercise_order = request.form.get("exercise_order")
             if exercise_order:
@@ -192,7 +199,8 @@ def index():
                            set_rest=set_rest,
                            message=message,
                            total_time=total_time,
-                           username=session["username"])  # Pass username to template
+                           username=session["username"],
+                           existing_users=get_existing_users())
 
 @app.route("/history")
 def history():
@@ -214,18 +222,14 @@ def warm_up():
 def analysis():
     import glob
     from datetime import datetime
-    # Load workouts
     if not os.path.exists(get_workout_log_path()):
         workouts = []
     else:
         with open(get_workout_log_path(), "r") as f:
             workouts = json.load(f)
-    # Helper to parse ISO timestamp saved as "timestamp"
     def parse_dt(s):
         return datetime.fromisoformat(s)
-    # Sort workouts by timestamp (chronological)
     workouts_sorted = sorted([w for w in workouts if w.get("timestamp")], key=lambda w: w["timestamp"])
-    # Per-workout trend (exercise vs rest)
     trend_labels = []
     trend_exercise = []
     trend_rest = []
@@ -242,14 +246,12 @@ def analysis():
         rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
         trend_exercise.append(exercise_time)
         trend_rest.append(rest_time)
-    # helper to produce bucket key (ISO week or month)
     def bucket_key(dt, by="week"):
         if by == "week":
             y, wn, _ = dt.isocalendar()
             return f"{y}-W{wn:02d}"
         else:
             return dt.strftime("%Y-%m")
-    # Aggregate workouts into buckets (week / month)
     def aggregate(by="week"):
         totals = {}
         for w in workouts:

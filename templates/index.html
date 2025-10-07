@@ -23,6 +23,7 @@
       display: block;
       margin: 0 auto;
     }
+    #newUserInput { display: none; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -35,8 +36,17 @@
   <p>Current user: {{ username }}</p>
 
   <form id="workoutForm" method="POST">
-    <label>Username:</label>
-    <input type="text" id="username" name="username" value="{{ username }}" placeholder="Enter username"><br><br>
+    <label for="username">Select User:</label>
+    <select id="username" name="username" onchange="toggleNewUserInput()">
+      <option value="">New User</option>
+      {% for user in existing_users %}
+        <option value="{{ user }}" {% if user == username %}selected{% endif %}>{{ user }}</option>
+      {% endfor %}
+    </select><br>
+    <div id="newUserInput">
+      <label for="new_username">New Username:</label>
+      <input type="text" id="new_username" name="new_username" placeholder="Enter new username">
+    </div><br>
 
     <label>Number of exercises:</label>
     <input type="number" id="num_exercises" name="num_exercises" value="{{ num_exercises }}" min="1"><br>
@@ -82,6 +92,12 @@
   <p><a href="{{ url_for('analysis') }}">Analysis</a></p>
 
   <script>
+  function toggleNewUserInput() {
+    const select = document.getElementById("username");
+    const newUserDiv = document.getElementById("newUserInput");
+    newUserDiv.style.display = select.value === "" ? "block" : "none";
+  }
+
   function recalcTotal() {
       const numExercises = parseInt(document.getElementById("num_exercises").value) || 0;
       const numSets = parseInt(document.getElementById("num_sets").value) || 0;
@@ -140,6 +156,7 @@
       document.getElementById("exercise_order").value = order.join(",");
     });
   }
+  document.addEventListener("DOMContentLoaded", toggleNewUserInput);
   </script>
 </body>
 </html>
