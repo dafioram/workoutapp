@@ -264,7 +264,7 @@ def analysis():
             dt = parse_dt(ts)
             key = bucket_key(dt, by)
             if key not in totals:
-                totals[key] = {"exercise": 0, "rest": 0, "muscles": {}}
+                totals[key] = {"exercise": 0, "rest": 0, "muscles": {}, "workout_count": 0}
             num_ex = len(w.get("exercises", []))
             num_sets = int(w.get("num_sets", 1))
             ex_dur = int(w.get("exercise_duration", 0))
@@ -274,6 +274,7 @@ def analysis():
             rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
             totals[key]["exercise"] += exercise_time
             totals[key]["rest"] += rest_time
+            totals[key]["workout_count"] += 1
             for ex in w.get("exercises", []):
                 ex_id = ex.get("id")
                 muscle = "Other"
@@ -291,6 +292,9 @@ def analysis():
         return ordered
     weekly_totals = aggregate("week")
     monthly_totals = aggregate("month")
+    weekly_workout_counts = {k: v["workout_count"] for k, v in weekly_totals.items()}
+    monthly_workout_counts = {k: v["workout_count"] for k, v in monthly_totals.items()}
+    
     return render_template(
         "analysis.html",
         trend_labels=trend_labels,
@@ -298,6 +302,8 @@ def analysis():
         trend_rest=trend_rest,
         weekly=weekly_totals,
         monthly=monthly_totals,
+        weekly_workout_counts=weekly_workout_counts,
+        monthly_workout_counts=monthly_workout_counts,
         username=session.get("username", "Bruno")
     )
 

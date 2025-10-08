@@ -28,13 +28,20 @@
   <h2>Muscle Group Distribution</h2>
   <canvas id="muscleChart"></canvas>
 
+  <h2>Number of Workouts</h2>
+  <canvas id="workoutCountChart"></canvas>
+
   <script>
     const trendLabels = {{ trend_labels|tojson }};
     const trendExercise = {{ trend_exercise|tojson }};
     const trendRest = {{ trend_rest|tojson }};
     const weekly = {{ weekly|tojson }};
     const monthly = {{ monthly|tojson }};
+    const weeklyWorkoutCounts = {{ weekly_workout_counts|tojson }};
+    const monthlyWorkoutCounts = {{ monthly_workout_counts|tojson }};
     let currentView = "week";
+
+    // Trend Chart (unchanged)
     const trendChart = new Chart(
       document.getElementById('trendChart'),
       {
@@ -48,23 +55,13 @@
         }
       }
     );
+
+    // Total Workout Time Chart (unchanged)
     function buildTotals(data) {
       const labels = Object.keys(data).sort();
       const exercise = labels.map(l => data[l].exercise);
       const rest = labels.map(l => data[l].rest);
       return { labels, exercise, rest };
-    }
-    function buildMuscles(data) {
-      const labels = Object.keys(data).sort();
-      const muscleSet = new Set();
-      labels.forEach(l => Object.keys(data[l].muscles).forEach(m => muscleSet.add(m)));
-      const muscles = Array.from(muscleSet);
-      const datasets = muscles.map((m, i) => ({
-        label: m,
-        data: labels.map(l => data[l].muscles[m] || 0),
-        backgroundColor: `hsl(${i*50 % 360},70%,60%)`
-      }));
-      return { labels, datasets };
     }
     let totals = buildTotals(weekly);
     const totalChart = new Chart(
@@ -81,6 +78,20 @@
         options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
       }
     );
+
+    // Muscle Group Distribution Chart (unchanged)
+    function buildMuscles(data) {
+      const labels = Object.keys(data).sort();
+      const muscleSet = new Set();
+      labels.forEach(l => Object.keys(data[l].muscles).forEach(m => muscleSet.add(m)));
+      const muscles = Array.from(muscleSet);
+      const datasets = muscles.map((m, i) => ({
+        label: m,
+        data: labels.map(l => data[l].muscles[m] || 0),
+        backgroundColor: `hsl(${i*50 % 360},70%,60%)`
+      }));
+      return { labels, datasets };
+    }
     let muscles = buildMuscles(weekly);
     const muscleChart = new Chart(
       document.getElementById('muscleChart'),
@@ -90,18 +101,70 @@
         options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
       }
     );
+
+    // New Workout Count Chart
+    function buildWorkoutCounts(data) {
+      const labels = Object.keys(data).sort();
+      const counts = labels.map(l => data[l]);
+      return { labels, counts };
+    }
+    let workoutCounts = buildWorkoutCounts(weeklyWorkoutCounts);
+    const workoutCountChart = new Chart(
+      document.getElementById('workoutCountChart'),
+      {
+        type: 'bar',
+        data: {
+          labels: workoutCounts.labels,
+          datasets: [{
+            label: "Number of Workouts",
+            data: workoutCounts.counts,
+            backgroundColor: "rgba(75, 192, 192, 0.5)",
+            borderColor: "rgba(75, 192, 192, 1)",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Number of Workouts' }
+            },
+            x: { title: { display: true, text: currentView === 'week' ? 'Week' : 'Month' } }
+          },
+          plugins: {
+            title: { display: true, text: 'Number of Workouts per ' + (currentView === 'week' ? 'Week' : 'Month') }
+          }
+        }
+      }
+    );
+
+    // Update setView to handle the new chart
     function setView(view) {
       currentView = view;
       const data = (view === "week") ? weekly : monthly;
+      const workoutCountData = (view === "week") ? weeklyWorkoutCounts : monthlyWorkoutCounts;
+
+      // Update Total Chart
       let totals = buildTotals(data);
       totalChart.data.labels = totals.labels;
       totalChart.data.datasets[0].data = totals.exercise;
       totalChart.data.datasets[1].data = totals.rest;
       totalChart.update();
+
+      // Update Muscle Chart
       let muscles = buildMuscles(data);
       muscleChart.data.labels = muscles.labels;
       muscleChart.data.datasets = muscles.datasets;
       muscleChart.update();
+
+      // Update Workout Count Chart
+      let workoutCounts = buildWorkoutCounts(workoutCountData);
+      workoutCountChart.data.labels = workoutCounts.labels;
+      workoutCountChart.data.datasets[0].data = workoutCounts.counts;
+      workoutCountChart.options.scales.x.title.text = view === 'week' ? 'Week' : 'Month';
+      workoutCountChart.options.plugins.title.text = 'Number of Workouts per ' + (view === 'week' ? 'Week' : 'Month');
+      workoutCountChart.update();
     }
   </script>
 </body>
