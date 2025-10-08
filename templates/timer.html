@@ -11,8 +11,8 @@
     #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
     #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
     button { padding: 10px 20px; margin: 10px; }
-    ul { text-align: left; display: inline-block; margin-top: 30px; }
-    li { margin: 5px 0; }
+    #workoutList { text-align: center; margin-top: 30px; }
+    #workoutList span { margin: 0 5px; }
     .current { font-weight: bold; color: darkred; }
     .exercise-phase { background: #d4edda; }
     .rest-phase { background: #ffeeba; }
@@ -67,11 +67,11 @@
   <button id="startBtn" onclick="startWorkout()">Start</button>
   <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
   <h2>Workout Plan</h2>
-  <ul id="workoutList">
+  <div id="workoutList">
     {% for ex in workout %}
-      <li id="ex-{{ loop.index0 }}">{{ ex.name }}</li>
+      <span id="ex-{{ loop.index0 }}">{{ ex.name }}</span>{% if not loop.last %},{% endif %}
     {% endfor %}
-  </ul>
+  </div>
   <script>
   const workout = [
     {% for ex in workout %}
@@ -266,10 +266,10 @@
     return `${m}:${s.toString().padStart(2,"0")}`;
   }
   function highlightCurrent(index) {
-    const items = document.querySelectorAll("#workoutList li");
-    items.forEach((li, i) => {
-      if (i === index) li.classList.add("current");
-      else li.classList.remove("current");
+    const items = document.querySelectorAll("#workoutList span");
+    items.forEach((span, i) => {
+      if (i === index) span.classList.add("current");
+      else span.classList.remove("current");
     });
   }
   function showImage(currImg, nextImg) {
