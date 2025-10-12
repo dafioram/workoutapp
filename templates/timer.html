@@ -67,11 +67,9 @@
   <button id="startBtn" onclick="startWorkout()">Start</button>
   <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
   <h2>Workout Plan</h2>
-  <div id="workoutList">
-    {% for ex in workout %}
-      <span id="ex-{{ loop.index0 }}">{{ ex.name }}</span>{% if not loop.last %},{% endif %}
-    {% endfor %}
-  </div>
+<div id="workoutList">
+  {{ workout | map(attribute='name') | join(', ') }}
+</div>
   <script>
   const workout = [
     {% for ex in workout %}
