@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, session, jsonify, redirect, u
 import os, json, random, datetime
 from collections import defaultdict
 
-from dotenv import load_dotenv
-load_dotenv()  # Load environment variables from .env file
+#from dotenv import load_dotenv
+#load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
 app.secret_key = "supersecret"
@@ -309,8 +309,8 @@ def analysis():
 
 if __name__ == "__main__":
     # Get port from environment variable, default to 5000 if not set
-    try:
-        PORT = int(os.getenv("APP_PORT", 5000))
-    except ValueError:
-        PORT = 5000  # Fallback to 5000 if APP_PORT is invalid
-    app.run(host="0.0.0.0", port=PORT, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+    #try:
+    #    PORT = int(os.getenv("APP_PORT", 5000))
+    #except ValueError:
+    #    PORT = 5000  # Fallback to 5000 if APP_PORT is invalid
