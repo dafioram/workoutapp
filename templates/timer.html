@@ -4,22 +4,40 @@
   <title>Workout Timer</title>
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
-    #exercise { font-size: 2em; margin: 20px 0; }
-    #time { font-size: 3em; margin: 20px 0; }
+    #exercise { font-size: 2.5em; margin: 20px 0; }
     #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
-    #next { color: gray; margin: 10px 0; }
+    #next { color: gray; margin: 10px 0; font-size: 1.2em; }
     #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
     #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
     button { padding: 10px 20px; margin: 10px; }
     #workoutList { text-align: center; margin-top: 30px; }
     #workoutList span { margin: 0 5px; }
-    .current { font-weight: bold; color: darkred; }
+    .current { font-weight: bold; color: red; } /* Updated to red highlight */
     .exercise-phase { background: #d4edda; }
     .rest-phase { background: #ffeeba; }
     .setrest-phase { background: #d1ecf1; }
     .complete-phase { background: #e2e3e5; }
-    #progressContainer { width: 80%; height: 30px; margin: 20px auto; background: #eee; border-radius: 5px; overflow: hidden; }
-    #progressBar { height: 100%; width: 0%; background: green; transition: width 0.25s; }
+    #progressContainer { 
+      width: 90%; 
+      height: 50px; 
+      margin: 20px auto; 
+      background: #eee; 
+      border-radius: 5px; 
+      overflow: hidden; 
+      position: relative; 
+    }
+    #progressBar { 
+      height: 100%; 
+      width: 0%; 
+      background: green; 
+      transition: width 0.25s; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: white; 
+      font-weight: bold; 
+      font-size: 1.5em; 
+    }
     #overallContainer {
       display: flex;
       width: 80%;
@@ -49,10 +67,21 @@
       border-radius: 5px;
       transition: width 0.25s;
     }
+    #setExerciseInfo {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+      margin: 10px 0;
+    }
+    #usernameHeader {
+      font-size: 1.5em;
+      margin: 20px 0;
+      font-weight: normal;
+    }
   </style>
 </head>
 <body>
-  <h1>Workout Timer for {{ username }}</h1>
   <div id="overallContainer"></div>
   <div id="progressContainer">
     <div id="progressBar"></div>
@@ -60,16 +89,19 @@
   <div id="phaseLabel">Get Ready</div>
   <div id="exercise">--</div>
   <img id="exercise-img" src="" alt="" style="display:none">
-  <div id="time">--</div>
   <div id="next"></div>
   <img id="next-img" src="" alt="" style="display:none;">
   <button onclick="location.href='{{ url_for('index') }}'">Back</button>
   <button id="startBtn" onclick="startWorkout()">Start</button>
   <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
   <h2>Workout Plan</h2>
-<div id="workoutList">
-  {{ workout | map(attribute='name') | join(', ') }}
-</div>
+  <div id="workoutList">
+    {% for ex in workout %}
+      <span data-index="{{ loop.index0 }}">{{ ex.name }}</span>{% if not loop.last %}| {% endif %}
+    {% endfor %}
+  </div>
+  <div id="setExerciseInfo"></div>
+  <h1 id="usernameHeader">Workout Timer for {{ username }}</h1>
   <script>
   const workout = [
     {% for ex in workout %}
@@ -171,13 +203,17 @@
       }
       return;
     }
-    document.getElementById("time").innerText = formatTime(timeLeft);
     let total = (phase === "exercise") ? exDuration :
                 (phase === "rest") ? restDuration :
                 (phase === "setrest") ? setRest :
                 (phase === "countdown") ? 7 : 1;
     let percent = ((total - timeLeft) / total) * 100;
     document.getElementById("progressBar").style.width = percent + "%";
+    document.getElementById("progressBar").innerText = 
+      (phase === "exercise") ? `EXERCISE ${formatTime(timeLeft)}` : 
+      (phase === "rest") ? `REST ${formatTime(timeLeft)}` : 
+      (phase === "countdown") ? formatTime(timeLeft) : 
+      (phase === "setrest") ? formatTime(timeLeft) : "";
     updateOverallProgress();
     timeLeft--;
     timer = setTimeout(tick, 1000);
@@ -194,7 +230,8 @@
     timeLeft = 7;
     updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
     document.getElementById("exercise").innerText = "Starting soon...";
-    document.getElementById("time").innerText = timeLeft;
+    document.getElementById("setExerciseInfo").innerText = "";
+    document.getElementById("progressBar").innerText = formatTime(timeLeft);
     tick();
   }
   function startExercise() {
@@ -203,7 +240,8 @@
         phase = "setrest";
         timeLeft = setRest;
         updatePhaseDisplay("Rest Between Sets", "setrest-phase", "blue");
-        document.getElementById("exercise").innerText = `Set Rest (${currentSet}/${numSets})`;
+        document.getElementById("exercise").innerText = `Set Rest`;
+        document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
         document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
         showImage(null, null);
         highlightCurrent(-1);
@@ -213,7 +251,8 @@
         phase = "complete";
         updatePhaseDisplay("Workout Complete!", "complete-phase", "gray");
         document.getElementById("exercise").innerText = "Done!";
-        document.getElementById("time").innerText = "";
+        document.getElementById("setExerciseInfo").innerText = "";
+        document.getElementById("progressBar").innerText = "";
         document.getElementById("next").innerText = "";
         showImage(null, null);
         highlightCurrent(-1);
@@ -224,8 +263,9 @@
     phase = "exercise";
     const ex = workout[currentIndex];
     timeLeft = exDuration;
-    updatePhaseDisplay("EXERCISE!", "exercise-phase", "green");
-    document.getElementById("exercise").innerText = `Set ${currentSet}/${numSets} - Exercise ${currentIndex+1}/${workout.length}: ${ex.name}`;
+    updatePhaseDisplay("", "exercise-phase", "green");
+    document.getElementById("exercise").innerText = ex.name;
+    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
     const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
     document.getElementById("next").innerText = nextEx
         ? `Next: ${nextEx.name}`
@@ -238,8 +278,9 @@
   function startRest() {
     phase = "rest";
     timeLeft = restDuration;
-    updatePhaseDisplay("REST", "rest-phase", "orange");
+    updatePhaseDisplay("", "rest-phase", "orange");
     document.getElementById("exercise").innerText = `Rest`;
+    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
     const nextEx = workout[currentIndex];
     document.getElementById("next").innerText = `Next: ${nextEx.name}`;
     showImage(null, nextEx.image);
