@@ -5,7 +5,6 @@
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
     #exercise { font-size: 2.5em; margin: 20px 0; }
-    /* New style for exercise description */
     #exercise-description { font-size: 1.2em; font-style: italic; color: #555; margin: 10px 0; }
     #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
     #next { color: gray; margin: 10px 0; font-size: 1.2em; }
@@ -81,6 +80,13 @@
       margin: 20px 0;
       font-weight: normal;
     }
+    /* New style for time left display */
+    #time-left {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #333;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -88,9 +94,10 @@
   <div id="progressContainer">
     <div id="progressBar"></div>
   </div>
+  <!-- New div for time left display -->
+  <div id="time-left"></div>
   <div id="phaseLabel">Get Ready</div>
   <div id="exercise">--</div>
-  <!-- New div for exercise description and variant -->
   <div id="exercise-description"></div>
   <img id="exercise-img" src="" alt="" style="display:none">
   <div id="next"></div>
@@ -112,8 +119,8 @@
       {
         name: "{{ ex.name }}",
         image: {{ url_for('static', filename=ex.image)|tojson }},
-        description: "{{ ex.description|default('') }}",  // Include description, default to empty string
-        alternate_name: "{{ ex.alternate_name|default('') }}"  // Include alternate_name, default to empty string
+        description: "{{ ex.description|default('') }}",
+        alternate_name: "{{ ex.alternate_name|default('') }}"
       }{% if not loop.last %},{% endif %}
     {% endfor %}
   ];
@@ -127,6 +134,11 @@
   let timer;
   let timeLeft = 0;
   let paused = false;
+  // New variable for total workout time and time remaining
+  const totalWorkoutTime = 7 + (numSets * workout.length * exDuration) + 
+                          (numSets * (workout.length - 1) * restDuration) + 
+                          ((numSets - 1) * setRest);
+  let timeRemaining = totalWorkoutTime;
   const beepShort = new Audio("{{ url_for('static', filename='sounds/beep_short.mp3') }}");
   const beepLong = new Audio("{{ url_for('static', filename='sounds/beep_long.mp3') }}");
   function playBeep(type) {
@@ -220,6 +232,11 @@
       (phase === "rest") ? `REST ${formatTime(timeLeft)}` : 
       (phase === "countdown") ? formatTime(timeLeft) : 
       (phase === "setrest") ? formatTime(timeLeft) : "";
+    // Update time remaining display
+    if (phase !== "complete") {
+      timeRemaining--;
+      document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
+    }
     updateOverallProgress();
     timeLeft--;
     timer = setTimeout(tick, 1000);
@@ -237,9 +254,10 @@
     updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
     document.getElementById("exercise").innerText = "Starting soon...";
     document.getElementById("setExerciseInfo").innerText = "";
-    // Clear description during countdown
     document.getElementById("exercise-description").innerText = "";
     document.getElementById("progressBar").innerText = formatTime(timeLeft);
+    // Update time left during countdown
+    document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
     tick();
   }
   function startExercise() {
@@ -251,7 +269,6 @@
         document.getElementById("exercise").innerText = `Set Rest`;
         document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
         document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
-        // Clear description during set rest
         document.getElementById("exercise-description").innerText = "";
         showImage(null, null);
         highlightCurrent(-1);
@@ -264,8 +281,9 @@
         document.getElementById("setExerciseInfo").innerText = "";
         document.getElementById("progressBar").innerText = "";
         document.getElementById("next").innerText = "";
-        // Clear description when complete
         document.getElementById("exercise-description").innerText = "";
+        // Clear time left on completion
+        document.getElementById("time-left").innerText = "";
         showImage(null, null);
         highlightCurrent(-1);
         autoSaveWorkout();
@@ -276,9 +294,7 @@
     const ex = workout[currentIndex];
     timeLeft = exDuration;
     updatePhaseDisplay("", "exercise-phase", "green");
-    // Update exercise name with alternate_name in parentheses if it exists
     document.getElementById("exercise").innerText = ex.alternate_name ? `${ex.name} (${ex.alternate_name})` : ex.name;
-    // Update description div with description if it exists
     document.getElementById("exercise-description").innerText = ex.description || "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
     const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
@@ -295,7 +311,6 @@
     timeLeft = restDuration;
     updatePhaseDisplay("", "rest-phase", "orange");
     document.getElementById("exercise").innerText = `Rest`;
-    // Clear description during rest
     document.getElementById("exercise-description").innerText = "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
     const nextEx = workout[currentIndex];
@@ -357,6 +372,8 @@
   }
   document.addEventListener("DOMContentLoaded", () => {
     buildOverallBar();
+    // Initialize time left display with total workout time
+    document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
   });
   </script>
 </body>
