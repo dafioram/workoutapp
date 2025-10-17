@@ -5,6 +5,8 @@
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
     #exercise { font-size: 2.5em; margin: 20px 0; }
+    /* New style for exercise description */
+    #exercise-description { font-size: 1.2em; font-style: italic; color: #555; margin: 10px 0; }
     #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
     #next { color: gray; margin: 10px 0; font-size: 1.2em; }
     #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
@@ -12,7 +14,7 @@
     button { padding: 10px 20px; margin: 10px; }
     #workoutList { text-align: center; margin-top: 30px; }
     #workoutList span { margin: 0 5px; }
-    .current { font-weight: bold; color: red; } /* Updated to red highlight */
+    .current { font-weight: bold; color: red; }
     .exercise-phase { background: #d4edda; }
     .rest-phase { background: #ffeeba; }
     .setrest-phase { background: #d1ecf1; }
@@ -88,6 +90,8 @@
   </div>
   <div id="phaseLabel">Get Ready</div>
   <div id="exercise">--</div>
+  <!-- New div for exercise description and variant -->
+  <div id="exercise-description"></div>
   <img id="exercise-img" src="" alt="" style="display:none">
   <div id="next"></div>
   <img id="next-img" src="" alt="" style="display:none;">
@@ -108,6 +112,8 @@
       {
         name: "{{ ex.name }}",
         image: {{ url_for('static', filename=ex.image)|tojson }},
+        description: "{{ ex.description|default('') }}",  // Include description, default to empty string
+        alternate_name: "{{ ex.alternate_name|default('') }}"  // Include alternate_name, default to empty string
       }{% if not loop.last %},{% endif %}
     {% endfor %}
   ];
@@ -231,6 +237,8 @@
     updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
     document.getElementById("exercise").innerText = "Starting soon...";
     document.getElementById("setExerciseInfo").innerText = "";
+    // Clear description during countdown
+    document.getElementById("exercise-description").innerText = "";
     document.getElementById("progressBar").innerText = formatTime(timeLeft);
     tick();
   }
@@ -243,6 +251,8 @@
         document.getElementById("exercise").innerText = `Set Rest`;
         document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
         document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+        // Clear description during set rest
+        document.getElementById("exercise-description").innerText = "";
         showImage(null, null);
         highlightCurrent(-1);
         playBeep("rest");
@@ -254,6 +264,8 @@
         document.getElementById("setExerciseInfo").innerText = "";
         document.getElementById("progressBar").innerText = "";
         document.getElementById("next").innerText = "";
+        // Clear description when complete
+        document.getElementById("exercise-description").innerText = "";
         showImage(null, null);
         highlightCurrent(-1);
         autoSaveWorkout();
@@ -264,7 +276,10 @@
     const ex = workout[currentIndex];
     timeLeft = exDuration;
     updatePhaseDisplay("", "exercise-phase", "green");
-    document.getElementById("exercise").innerText = ex.name;
+    // Update exercise name with alternate_name in parentheses if it exists
+    document.getElementById("exercise").innerText = ex.alternate_name ? `${ex.name} (${ex.alternate_name})` : ex.name;
+    // Update description div with description if it exists
+    document.getElementById("exercise-description").innerText = ex.description || "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
     const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
     document.getElementById("next").innerText = nextEx
@@ -280,6 +295,8 @@
     timeLeft = restDuration;
     updatePhaseDisplay("", "rest-phase", "orange");
     document.getElementById("exercise").innerText = `Rest`;
+    // Clear description during rest
+    document.getElementById("exercise-description").innerText = "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
     const nextEx = workout[currentIndex];
     document.getElementById("next").innerText = `Next: ${nextEx.name}`;
