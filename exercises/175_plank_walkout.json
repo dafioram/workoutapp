@@ -11,6 +11,7 @@
     "active": true,
     "alternate_name": "",
     "intensity": 5,
+	"ab_workout": true,
     "image": "exercises/plank_walkout.png",
     "description": "Start in a plank and then walk your hands forward and then back."
 }

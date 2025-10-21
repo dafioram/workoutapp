@@ -24,7 +24,7 @@ def get_existing_users():
             users.append(username)
     return sorted(users)
 
-def load_exercises():
+def load_exercises(only_core=False):
     exercises = []
     for file in os.listdir(EXERCISE_DIR):
         if file.endswith(".json"):
@@ -39,6 +39,9 @@ def load_exercises():
                 default_val = 5
                 if new_field not in exercise_loaded:
                     exercise_loaded[new_field] = default_val
+                # Only include exercises where ab_workout is True if only_core is True
+                if only_core and exercise_loaded.get("ab_workout", False) != True:
+                    continue
                 if exercise_active:
                     exercises.append(exercise_loaded)
     return exercises
@@ -121,7 +124,11 @@ def exercises():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    exercises = load_exercises()
+    # Check if the "Only Core" checkbox is selected
+    only_core = request.form.get("only_core") == "on"
+    session["only_core"] = only_core
+    # Load exercises, filtering by ab_workout if only_core is True
+    exercises = load_exercises(only_core=only_core)
     workout = session.get("current_workout", [])
     if "username" not in session:
         session["username"] = "Bruno"
@@ -203,7 +210,8 @@ def index():
                            message=message,
                            total_time=total_time,
                            username=session["username"],
-                           existing_users=get_existing_users())
+                           existing_users=get_existing_users(),
+                           only_core=session.get("only_core",False))
 
 @app.route("/history")
 def history():

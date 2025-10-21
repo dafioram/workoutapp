@@ -10,6 +10,7 @@
     "link": "",
     "active": true,
     "alternate_name": "",
+	"ab_workout": true,
     "intensity": 5,
     "image": "exercises/plank_jacks.png",
     "description": "Hold a plank while opening and closing your legs"

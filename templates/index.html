@@ -63,6 +63,8 @@
     <label>Rest between sets (minutes):</label>
     <input type="number" id="set_rest" name="set_rest" value="{{ set_rest/60 }}" min="0" step="0.1"><br><br>
 
+    <label><input type="checkbox" id="only_core" name="only_core" {% if only_core %}checked{% endif %}> Only Core Exercises</label><br><br>
+
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}
       <button type="submit" name="save" value="1">Save Workout</button>

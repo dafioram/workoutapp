@@ -10,6 +10,7 @@
 	"link": "",
 	"active": true,
 	"alternate_name": "",
+	"ab_workout": true,
 	"intensity": 4,
 	"image": "exercises/standing_cross_crunch.png",
 	"description": "Stand tall with hands behind your head. Bring your right elbow down toward your left knee as you lift the knee across your body, engaging your obliques. Return to start and repeat on the other side."

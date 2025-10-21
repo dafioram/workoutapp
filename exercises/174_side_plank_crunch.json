@@ -11,6 +11,7 @@
     "active": true,
     "alternate_name": "",
     "intensity": 5,
+	"ab_workout": true,
     "image": "exercises/side_plank_crunch.png",
     "description": "Start in a side plank with your top hand extended up. Now crunch your top elbow and opposite leg together."
 }

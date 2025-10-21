@@ -4,6 +4,7 @@
 	"muscle": "abs",
 	"body_part": "upper",
 	"body_weight": true,
-	"variants": "none",
+	"variants": "",
+	"ab_workout": true,
 	"description": "Plank with shoulder taps"
 }

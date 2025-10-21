@@ -4,5 +4,6 @@
 	"muscle": "abs",
 	"body_part": "upper",
 	"body_weight": true,
+	"ab_workout": true,
 	"variants": "none"
 }
