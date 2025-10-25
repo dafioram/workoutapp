@@ -4,6 +4,7 @@
 	"muscle": "quads",
 	"body_part": "lower",
 	"body_weight": true,
+	"type": "cardio",
 	"variants": "none",
 	"description": "pulse at the bottom of the squat position"
 }

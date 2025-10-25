@@ -63,7 +63,22 @@
     <label>Rest between sets (minutes):</label>
     <input type="number" id="set_rest" name="set_rest" value="{{ set_rest/60 }}" min="0" step="0.1"><br><br>
 
-    <label><input type="checkbox" id="only_core" name="only_core" {% if only_core %}checked{% endif %}> Only Core Exercises</label><br><br>
+<fieldset style="margin-top: 10px;">
+  <legend><strong>Workout Type</strong></legend>
+  <label>
+    <input type="radio" name="workout_type" value="any"
+      {% if workout_type == 'any' %}checked{% endif %}> Any Exercises
+  </label><br>
+  <label>
+    <input type="radio" name="workout_type" value="core"
+      {% if workout_type == 'core' %}checked{% endif %}> Core Only
+  </label><br>
+  <label>
+    <input type="radio" name="workout_type" value="cardio"
+      {% if workout_type == 'cardio' %}checked{% endif %}> Cardio Only
+  </label>
+</fieldset>
+<br>
 
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}

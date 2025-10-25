@@ -24,7 +24,7 @@ def get_existing_users():
             users.append(username)
     return sorted(users)
 
-def load_exercises(only_core=False):
+def load_exercises(workout_type="any"):
     exercises = []
     for file in os.listdir(EXERCISE_DIR):
         if file.endswith(".json"):
@@ -32,19 +32,25 @@ def load_exercises(only_core=False):
             with open(fpath, 'r') as f:
                 exercise_active = True
                 exercise_loaded = json.load(f)
-                if "active" in exercise_loaded:
-                    if exercise_loaded["active"] == False:
-                        exercise_active = False
+                if "active" in exercise_loaded and not exercise_loaded["active"]:
+                    exercise_active = False
                 new_field = "intensity"
                 default_val = 5
                 if new_field not in exercise_loaded:
                     exercise_loaded[new_field] = default_val
-                # Only include exercises where ab_workout is True if only_core is True
-                if only_core and exercise_loaded.get("ab_workout", False) != True:
-                    continue
+
+                # Filter based on workout type
+                if workout_type == "core":
+                    if not exercise_loaded.get("ab_workout", False):
+                        continue
+                elif workout_type == "cardio":
+                    if exercise_loaded.get("type", "").lower() != "cardio":
+                        continue
+
                 if exercise_active:
                     exercises.append(exercise_loaded)
     return exercises
+
 
 def load_workouts():
     try:
@@ -124,11 +130,13 @@ def exercises():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # Check if the "Only Core" checkbox is selected
-    only_core = request.form.get("only_core") == "on"
-    session["only_core"] = only_core
-    # Load exercises, filtering by ab_workout if only_core is True
-    exercises = load_exercises(only_core=only_core)
+    # Determine workout type (any/core/cardio)
+    workout_type = request.form.get("workout_type", session.get("workout_type", "any"))
+    session["workout_type"] = workout_type
+
+    # Load exercises according to workout type
+    exercises = load_exercises(workout_type=workout_type)
+
     workout = session.get("current_workout", [])
     if "username" not in session:
         session["username"] = "Bruno"
@@ -211,7 +219,7 @@ def index():
                            total_time=total_time,
                            username=session["username"],
                            existing_users=get_existing_users(),
-                           only_core=session.get("only_core",False))
+                           workout_type=session.get("workout_type", "any"))
 
 @app.route("/history")
 def history():
