@@ -13,6 +13,7 @@
       cursor: grab;
       background: #fafafa;
       position: relative;
+      user-select: none;
     }
     .exercise-card.dragging {
       opacity: 0.5;
@@ -25,15 +26,23 @@
       margin: 0 auto;
     }
     #newUserInput { display: none; margin-top: 10px; }
-    .lock-checkbox {
+    .lock-area {
       position: absolute;
-      top: 5px;
-      right: 5px;
+      top: 6px;
+      right: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       cursor: pointer;
+      background: rgba(255,255,255,0.0);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 14px;
     }
     .locked {
       background-color: #d9ffd9;
     }
+    .lock-icon { pointer-events: none; }
   </style>
 </head>
 <body>
@@ -99,19 +108,27 @@
     {% if workout %}
       <h2>Your Workout</h2>
       <div class="exercise-list" id="sortable">
+        {# locked_ids stored in session as strings; normalize comparisons by converting ex.id to string #}
+        {% set locked_ids = session.get('locked_ids', []) %}
         {% for ex in workout %}
-          <div class="exercise-card" draggable="true" data-id="{{ loop.index0 }}">
-            <input type="checkbox" class="lock-checkbox" title="Lock exercise">
+          {% set exid = (ex.id|string) %}
+          <div class="exercise-card {% if exid in locked_ids %}locked{% endif %}" draggable="true" data-id="{{ exid }}">
+            <label class="lock-area" title="Lock exercise">
+              <input type="checkbox" class="lock-input" {% if exid in locked_ids %}checked{% endif %}>
+              <span class="lock-icon">🔒</span>
+            </label>
             <p>{{ ex.name }}</p>
             {% if ex.image %}
-              <img src="{{ url_for('static', filename=ex.image) }}" alt="{{ ex.name }}"
-                   onerror="this.style.display='none'">
+              <img src="{{ url_for('static', filename=ex.image) }}" alt="{{ ex.name }}" onerror="this.style.display='none'">
             {% endif %}
           </div>
         {% endfor %}
       </div>
+
+      <!-- Hidden inputs used to submit order and locked exercise IDs -->
       <input type="hidden" name="exercise_order" id="exercise_order">
-      <input type="hidden" name="locked_indices" id="locked_indices">
+      <input type="hidden" name="locked_ids" id="locked_ids">
+
       <p><strong>Total workout time: <span id="total_time">{{ total_time }}</span></strong></p>
     {% endif %}
   </form>
@@ -127,29 +144,22 @@
       newUserDiv.style.display = select.value === "" ? "block" : "none";
     }
 
-    function recalcTotal() {
-        const numExercises = parseInt(document.getElementById("num_exercises").value) || 0;
-        const numSets = parseInt(document.getElementById("num_sets").value) || 0;
-        const exDuration = parseInt(document.getElementById("ex_duration").value) || 0;
-        const restDuration = parseInt(document.getElementById("rest_duration").value) || 0;
-        const setRestMinutes = parseFloat(document.getElementById("set_rest").value) || 0;
-        const setRest = setRestMinutes * 60;
-        if(numExercises <= 0 || numSets <= 0) {
-            document.getElementById("total_time").innerText = "0s";
-            return;
-        }
-        let timePerSet = (numExercises * exDuration) + ((numExercises - 1) * restDuration);
-        let totalSec = (numSets * timePerSet) + ((numSets - 1) * setRest);
-        const mins = Math.floor(totalSec / 60);
-        const secs = totalSec % 60;
-        document.getElementById("total_time").innerText = `${mins}m ${secs}s`;
+    // Write current order and locked ids into hidden inputs
+    function writeHiddenState() {
+      const sortableEl = document.getElementById("sortable");
+      if (!sortableEl) return;
+      const order = Array.from(sortableEl.children).map(card => String(card.dataset.id));
+      document.getElementById("exercise_order").value = order.join(",");
+
+      const locked = [];
+      Array.from(sortableEl.children).forEach(card => {
+        const cb = card.querySelector(".lock-input");
+        if (cb && cb.checked) locked.push(String(card.dataset.id));
+      });
+      document.getElementById("locked_ids").value = locked.join(",");
     }
 
-    ["num_exercises","num_sets","ex_duration","rest_duration","set_rest"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener("input", recalcTotal);
-    });
-
+    // Set up drag-and-drop reordering
     const sortable = document.getElementById("sortable");
     let dragged = null;
     if (sortable) {
@@ -163,6 +173,8 @@
         if (!dragged) return;
         dragged.classList.remove("dragging");
         dragged = null;
+        // update hidden state after reorder
+        setTimeout(writeHiddenState, 0);
       });
       sortable.addEventListener("dragover", (e) => {
         e.preventDefault();
@@ -179,39 +191,38 @@
       });
     }
 
+    // Hook up lock checkbox behavior and initial state
+    document.addEventListener("DOMContentLoaded", () => {
+      toggleNewUserInput();
+
+      // Set initial hidden fields
+      writeHiddenState();
+
+      const sortableEl = document.getElementById("sortable");
+      if (!sortableEl) return;
+
+      Array.from(sortableEl.children).forEach(card => {
+        const cb = card.querySelector(".lock-input");
+        if (!cb) return;
+        // ensure visual class matches checkbox
+        card.classList.toggle("locked", cb.checked);
+        cb.addEventListener("change", () => {
+          card.classList.toggle("locked", cb.checked);
+          writeHiddenState();
+        });
+      });
+
+      // keep hidden updated after drag operations (also on mouseup)
+      sortableEl.addEventListener("mouseup", () => setTimeout(writeHiddenState, 0));
+    });
+
+    // Ensure hidden inputs are set right before submit
     const form = document.getElementById("workoutForm");
     if (form) {
       form.addEventListener("submit", (ev) => {
-        const sortableEl = document.getElementById("sortable");
-        if (!sortableEl) return;
-
-        // Save order
-        const order = Array.from(sortableEl.children).map(card => card.dataset.id);
-        document.getElementById("exercise_order").value = order.join(",");
-
-        // Save locked indices
-        const locked = [];
-        Array.from(sortableEl.children).forEach((card, i) => {
-          const cb = card.querySelector(".lock-checkbox");
-          if (cb && cb.checked) locked.push(i);
-        });
-        document.getElementById("locked_indices").value = locked.join(",");
+        writeHiddenState();
       });
     }
-
-    // Persist lock state visually
-    document.addEventListener("DOMContentLoaded", toggleNewUserInput);
-    document.addEventListener("DOMContentLoaded", () => {
-      const sortableEl = document.getElementById("sortable");
-      if (!sortableEl) return;
-      Array.from(sortableEl.children).forEach((card, i) => {
-        const cb = card.querySelector(".lock-checkbox");
-        if (!cb) return;
-        cb.addEventListener("change", () => {
-          card.classList.toggle("locked", cb.checked);
-        });
-      });
-    });
   </script>
 </body>
 </html>

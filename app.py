@@ -165,39 +165,140 @@ def index():
     elif request.form.get("username"):
         session["username"] = request.form.get("username") or "Bruno"
 
+    # normalize and ensure locked_ids in session
+    if "locked_ids" not in session:
+        session["locked_ids"] = []
+    else:
+        # normalize to list of strings
+        session["locked_ids"] = [str(x) for x in session.get("locked_ids", [])]
+
     if request.method == "POST":
-        # 🔹 Generate workout (with lock-in support)
+        # ---------- GENERATE / REDRAW ----------
         if "generate" in request.form:
-            old_workout = session.get("current_workout", [])
-            locked_indices = request.form.get("locked_indices", "")
-            locked_indices = [int(i) for i in locked_indices.split(",") if i.strip().isdigit()]
+            # read current order (IDs) from form (client writes this reliably)
+            exercise_order_raw = request.form.get("exercise_order", "")
+            order_ids = [s for s in exercise_order_raw.split(",") if s.strip() != ""]
+            # normalize to strings
+            order_ids = [str(s) for s in order_ids]
 
-            # Keep locked exercises
-            locked = []
-            for i in locked_indices:
-                if 0 <= i < len(old_workout):
-                    locked.append(old_workout[i])
+            # build mapping of existing session workout exercises by id
+            old_workout = session.get("current_workout", []) or []
+            old_by_id = {str(ex.get("id")): ex for ex in old_workout}
 
-            # Fill remaining spots
-            remaining = num_exercises - len(locked)
-            available_exercises = [e for e in exercises if e not in locked]
-            new_randoms = random.sample(available_exercises, min(remaining, len(available_exercises)))
+            # old_in_order: if orderIds provided, use that to order old_workout; else fallback to old_workout order
+            if order_ids:
+                old_in_order = []
+                for oid in order_ids:
+                    if oid in old_by_id:
+                        old_in_order.append(old_by_id[oid])
+                # any leftover in session not in order_ids -> append
+                for ex in old_workout:
+                    sid = str(ex.get("id"))
+                    if sid not in order_ids:
+                        old_in_order.append(ex)
+            else:
+                old_in_order = old_workout[:]
 
-            workout = locked + new_randoms
+            # locked ids submitted in form (client writes these). If none provided, fallback to session stored locks.
+            locked_ids_raw = request.form.get("locked_ids", "")
+            if locked_ids_raw and locked_ids_raw.strip() != "":
+                locked_ids = [s for s in locked_ids_raw.split(",") if s.strip() != ""]
+            else:
+                locked_ids = session.get("locked_ids", [])
+            # normalize to strings
+            locked_ids = [str(x) for x in locked_ids]
+            session["locked_ids"] = locked_ids  # persist
 
-            session["current_workout"] = workout
+            # Build new_workout list with length = num_exercises and fill locked exercises into same slot index if possible
+            new_workout = [None] * max(0, num_exercises)
+
+            # Build id->exercise map combining currently available exercises and old_workout, to be able to pull locked items
+            combined_map = {str(e.get("id")): e for e in exercises}
+            combined_map.update(old_by_id)  # old entries override if necessary
+
+            # Place locked exercises into same indices as they appeared in old_in_order (if within requested size)
+            for idx, ex in enumerate(old_in_order):
+                exid = str(ex.get("id"))
+                if exid in locked_ids:
+                    if idx < len(new_workout):
+                        # if we have that exercise available in combined_map, use that object
+                        candidate = combined_map.get(exid, ex)
+                        new_workout[idx] = candidate
+
+            # For locked ids that were not present in old_in_order (maybe came from session or external),
+            # try to place them in first available None slot (preserve lock but no original index)
+            for lid in locked_ids:
+                if any((item and str(item.get("id")) == lid) for item in new_workout):
+                    continue
+                # if we have a candidate in combined_map
+                candidate = combined_map.get(lid)
+                if candidate:
+                    # place into first empty slot
+                    try:
+                        first_none = new_workout.index(None)
+                        new_workout[first_none] = candidate
+                    except ValueError:
+                        # no slot available; we'll append later
+                        new_workout.append(candidate)
+
+            # Build pool of available exercises to fill the remaining slots (exclude locked ids and those already used)
+            used_ids = set(str(e.get("id")) for e in new_workout if e)
+            pool = [e for e in exercises if str(e.get("id")) not in used_ids and str(e.get("id")) not in locked_ids]
+
+            # Fill empty slots with random distinct choices from pool; if pool is exhausted allow duplicates (best-effort)
+            slots_to_fill = [i for i, v in enumerate(new_workout) if v is None]
+            chosen = []
+            if pool:
+                take = min(len(pool), len(slots_to_fill))
+                chosen = random.sample(pool, take)
+            # if still need more, allow duplicates from non-locked exercises (can include ones already chosen)
+            if len(chosen) < len(slots_to_fill):
+                non_locked_pool = [e for e in exercises if str(e.get("id")) not in locked_ids]
+                while len(chosen) < len(slots_to_fill) and non_locked_pool:
+                    chosen.append(random.choice(non_locked_pool))
+
+            # place chosen into slots
+            for pos_idx, slot in enumerate(slots_to_fill):
+                if pos_idx < len(chosen):
+                    new_workout[slot] = chosen[pos_idx]
+                else:
+                    new_workout[slot] = None
+
+            # Clean None and ensure final length = num_exercises (append random non-locked if needed)
+            final_workout = [e for e in new_workout if e is not None]
+            if len(final_workout) < num_exercises:
+                non_locked_pool = [e for e in exercises if str(e.get("id")) not in locked_ids]
+                while len(final_workout) < num_exercises and non_locked_pool:
+                    final_workout.append(random.choice(non_locked_pool))
+
+            # if too long, trim
+            if len(final_workout) > num_exercises:
+                final_workout = final_workout[:num_exercises]
+
+            # Persist to session
+            session["current_workout"] = final_workout
             session["num_sets"] = num_sets
             session["ex_duration"] = ex_duration
             session["rest_duration"] = rest_duration
             session["set_rest"] = set_rest
             message = ""
 
+        # ---------- START ----------
         elif "start" in request.form and workout:
-            exercise_order = request.form.get("exercise_order")
+            exercise_order = request.form.get("exercise_order", "")
             if exercise_order:
-                order_indices = [int(i) for i in exercise_order.split(",") if i.strip().isdigit()]
-                if len(order_indices) == len(workout) and all(0 <= i < len(workout) for i in order_indices):
-                    workout = [workout[i] for i in order_indices]
+                order_ids = [s for s in exercise_order.split(",") if s.strip() != ""]
+                order_ids = [str(s) for s in order_ids]
+                current = session.get("current_workout", [])
+                by_id = {str(ex.get("id")): ex for ex in current}
+                new_list = []
+                for oid in order_ids:
+                    if oid in by_id:
+                        new_list.append(by_id[oid])
+                for ex in current:
+                    if str(ex.get("id")) not in order_ids:
+                        new_list.append(ex)
+                workout = new_list
             session["current_workout"] = workout
             session["num_sets"] = num_sets
             session["ex_duration"] = ex_duration
@@ -205,18 +306,28 @@ def index():
             session["set_rest"] = set_rest
             return redirect(url_for("timer"))
 
+        # ---------- SAVE ----------
         elif "save" in request.form and workout:
-            exercise_order = request.form.get("exercise_order")
+            exercise_order = request.form.get("exercise_order", "")
             if exercise_order:
-                order_indices = [int(i) for i in exercise_order.split(",") if i.strip().isdigit()]
-                if len(order_indices) == len(workout) and all(0 <= i < len(workout) for i in order_indices):
-                    workout = [workout[i] for i in order_indices]
-                    session["current_workout"] = workout
+                order_ids = [s for s in exercise_order.split(",") if s.strip() != ""]
+                order_ids = [str(s) for s in order_ids]
+                current = session.get("current_workout", [])
+                by_id = {str(ex.get("id")): ex for ex in current}
+                new_list = []
+                for oid in order_ids:
+                    if oid in by_id:
+                        new_list.append(by_id[oid])
+                for ex in current:
+                    if str(ex.get("id")) not in order_ids:
+                        new_list.append(ex)
+                workout = new_list
+                session["current_workout"] = workout
             save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
             session.pop("current_workout", None)
-            workout = []
             message = "Workout Saved!"
 
+    # Update total_time if we have a workout
     if workout:
         total_time_sec = calculate_total_time(len(workout), num_sets, ex_duration, rest_duration, set_rest)
         total_time = format_time(total_time_sec)
@@ -227,7 +338,7 @@ def index():
 
     return render_template(
         "index.html",
-        workout=workout,
+        workout=session.get("current_workout", []),
         num_exercises=num_exercises,
         num_sets=num_sets,
         ex_duration=ex_duration,
