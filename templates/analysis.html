@@ -41,7 +41,15 @@
     const monthlyWorkoutCounts = {{ monthly_workout_counts|tojson }};
     let currentView = "week";
 
-    // Trend Chart (unchanged)
+    // Convert seconds → minutes (1 decimal)
+    function toMinutes(val) {
+      return (val / 60).toFixed(1);
+    }
+    function toMinutesArray(arr) {
+      return arr.map(v => toMinutes(v));
+    }
+
+    // Trend Chart (now in minutes)
     const trendChart = new Chart(
       document.getElementById('trendChart'),
       {
@@ -49,20 +57,26 @@
         data: {
           labels: trendLabels,
           datasets: [
-            { label: "Exercise Time (sec)", data: trendExercise, borderColor: "green", fill: false },
-            { label: "Rest Time (sec)", data: trendRest, borderColor: "red", fill: false }
+            { label: "Exercise Time (min)", data: toMinutesArray(trendExercise), borderColor: "green", fill: false },
+            { label: "Rest Time (min)", data: toMinutesArray(trendRest), borderColor: "red", fill: false }
           ]
+        },
+        options: {
+          scales: {
+            y: { title: { display: true, text: "Minutes" } }
+          }
         }
       }
     );
 
-    // Total Workout Time Chart (unchanged)
+    // Build Totals (convert to minutes)
     function buildTotals(data) {
       const labels = Object.keys(data).sort();
-      const exercise = labels.map(l => data[l].exercise);
-      const rest = labels.map(l => data[l].rest);
+      const exercise = labels.map(l => toMinutes(data[l].exercise));
+      const rest = labels.map(l => toMinutes(data[l].rest));
       return { labels, exercise, rest };
     }
+
     let totals = buildTotals(weekly);
     const totalChart = new Chart(
       document.getElementById('totalChart'),
@@ -71,15 +85,21 @@
         data: {
           labels: totals.labels,
           datasets: [
-            { label: "Exercise (sec)", data: totals.exercise, backgroundColor: "green" },
-            { label: "Rest (sec)", data: totals.rest, backgroundColor: "red" }
+            { label: "Exercise (min)", data: totals.exercise, backgroundColor: "green" },
+            { label: "Rest (min)", data: totals.rest, backgroundColor: "red" }
           ]
         },
-        options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+        options: {
+          responsive: true,
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, title: { display: true, text: "Minutes" } }
+          }
+        }
       }
     );
 
-    // Muscle Group Distribution Chart (unchanged)
+    // Muscle Group Distribution Chart (convert to minutes)
     function buildMuscles(data) {
       const labels = Object.keys(data).sort();
       const muscleSet = new Set();
@@ -87,27 +107,38 @@
       const muscles = Array.from(muscleSet);
       const datasets = muscles.map((m, i) => ({
         label: m,
-        data: labels.map(l => data[l].muscles[m] || 0),
+        data: labels.map(l => data[l].muscles[m] ? toMinutes(data[l].muscles[m]) : 0),
         backgroundColor: `hsl(${i*50 % 360},70%,60%)`
       }));
       return { labels, datasets };
     }
+
     let muscles = buildMuscles(weekly);
     const muscleChart = new Chart(
       document.getElementById('muscleChart'),
       {
         type: 'bar',
         data: { labels: muscles.labels, datasets: muscles.datasets },
-        options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+        options: {
+          responsive: true,
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, title: { display: true, text: "Minutes" } }
+          },
+          plugins: {
+            title: { display: true, text: "Muscle Group Time (min)" }
+          }
+        }
       }
     );
 
-    // New Workout Count Chart
+    // Workout Count Chart (unchanged)
     function buildWorkoutCounts(data) {
       const labels = Object.keys(data).sort();
       const counts = labels.map(l => data[l]);
       return { labels, counts };
     }
+
     let workoutCounts = buildWorkoutCounts(weeklyWorkoutCounts);
     const workoutCountChart = new Chart(
       document.getElementById('workoutCountChart'),
@@ -139,7 +170,7 @@
       }
     );
 
-    // Update setView to handle the new chart
+    // Update when switching views
     function setView(view) {
       currentView = view;
       const data = (view === "week") ? weekly : monthly;
