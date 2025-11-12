@@ -199,10 +199,15 @@ def index():
             else:
                 old_in_order = old_workout[:]
 
-            # locked ids submitted in form (client writes these). If none provided, fallback to session stored locks.
-            locked_ids_raw = request.form.get("locked_ids", "")
-            if locked_ids_raw and locked_ids_raw.strip() != "":
-                locked_ids = [s for s in locked_ids_raw.split(",") if s.strip() != ""]
+            # locked ids submitted in form (client writes these). 
+            # Important: treat presence of locked_ids in the form (even if empty) as an explicit client intent to set locks -> use it.
+            # Only fallback to session stored locks if the client did NOT send the locked_ids field at all.
+            if 'locked_ids' in request.form:
+                locked_ids_raw = request.form.get("locked_ids", "")
+                if locked_ids_raw and locked_ids_raw.strip() != "":
+                    locked_ids = [s for s in locked_ids_raw.split(",") if s.strip() != ""]
+                else:
+                    locked_ids = []
             else:
                 locked_ids = session.get("locked_ids", [])
             # normalize to strings
@@ -282,6 +287,9 @@ def index():
             session["rest_duration"] = rest_duration
             session["set_rest"] = set_rest
             message = ""
+
+            # IMPORTANT: update local 'workout' variable so subsequent code (and template rendering) sees the new workout
+            workout = final_workout
 
         # ---------- START ----------
         elif "start" in request.form and workout:
