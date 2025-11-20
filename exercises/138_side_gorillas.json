@@ -2,7 +2,7 @@
 	"id": 138,
 	"name": "Side Gorillas",
 	"muscle": "legs",
-	"body_part": "full body",
+	"body_part": "full",
 	"body_weight": true,
 	"variants": "none",
 	"type": "mobility",

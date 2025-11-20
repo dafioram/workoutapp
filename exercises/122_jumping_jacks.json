@@ -1,8 +1,8 @@
 {
 	"id": 122,
 	"name": "Jumping Jacks",
-	"muscle": "cardio",
-	"body_part": "full body",
+	"muscle": "full",
+	"body_part": "full",
 	"body_weight": true,
 	"variants": "half-jacks",
 	"type": "plyometric",

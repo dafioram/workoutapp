@@ -1,7 +1,7 @@
 {
 	"id": 131,
 	"name": "Inchworm Walkout",
-	"muscle": "full body",
+	"muscle": "full",
 	"body_part": "full",
 	"body_weight": true,
 	"variants": "",

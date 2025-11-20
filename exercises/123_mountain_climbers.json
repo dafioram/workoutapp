@@ -2,7 +2,7 @@
 	"id": 123,
 	"name": "Mountain Climbers",
 	"muscle": "abs",
-	"body_part": "full body",
+	"body_part": "full",
 	"body_weight": true,
 	"variants": "cross-body",
 	"type": "cardio",

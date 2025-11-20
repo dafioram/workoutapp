@@ -1,8 +1,8 @@
 {
 	"id": 121,
 	"name": "Criss Cross Jumps",
-	"muscle": "full body",
-	"body_part": "full body",
+	"muscle": "full",
+	"body_part": "full",
 	"body_weight": true,
 	"variants": "none",
 	"type": "cardio",
