@@ -1,0 +1,16 @@
+{
+  "id": 146,
+  "name": "Donkey Kicks",
+  "muscle": "glutes",
+  "body_part": "legs",
+  "body_weight": true,
+  "variants": "",
+  "type": "strength",
+  "equipment": "",
+  "link": "",
+  "active": true,
+  "alternate_name": "",
+  "intensity": 4,
+  "image": "exercises/donkey_kicks.png",
+  "description": "Start on all fours with hands under shoulders and knees under hips. Keeping your knee bent, lift one leg up toward the ceiling, squeezing your glutes."
+}

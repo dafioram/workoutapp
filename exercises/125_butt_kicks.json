@@ -1,0 +1,15 @@
+{
+	"id": 125,
+	"name": "Butt Kicks",
+	"muscle": "hamstrings",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "running butt kicks",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/butt_kicks.png",
+	"description": "Run in place while kicking your heels up toward your glutes with each step, keeping a steady rhythm."
+}

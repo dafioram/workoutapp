@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout Generator</title>
+  <style>
+    .exercise-list { display: flex; flex-wrap: wrap; gap: 20px; }
+    .exercise-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      width: 180px;
+      text-align: center;
+      cursor: grab;
+      background: #fafafa;
+      position: relative;
+      user-select: none;
+    }
+    .exercise-card.dragging {
+      opacity: 0.5;
+      border: 2px dashed #666;
+    }
+    .exercise-card img {
+      max-width: 150px;
+      max-height: 150px;
+      display: block;
+      margin: 0 auto;
+    }
+    #newUserInput { display: none; margin-top: 10px; }
+    .lock-area {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.0);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .locked {
+      background-color: #d9ffd9;
+    }
+    .lock-icon { pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h1>Workout Generator</h1>
+
+  {% if message %}
+    <p style="color: green;"><strong>{{ message }}</strong></p>
+  {% endif %}
+
+  <p>Current user: {{ username }}</p>
+
+  <form id="workoutForm" method="POST">
+    <label for="username">Select User:</label>
+    <select id="username" name="username" onchange="toggleNewUserInput()">
+      <option value="">New User</option>
+      {% for user in existing_users %}
+        <option value="{{ user }}" {% if user == username %}selected{% endif %}>{{ user }}</option>
+      {% endfor %}
+    </select><br>
+    <div id="newUserInput">
+      <label for="new_username">New Username:</label>
+      <input type="text" id="new_username" name="new_username" placeholder="Enter new username">
+    </div><br>
+
+    <label>Number of exercises:</label>
+    <input type="number" id="num_exercises" name="num_exercises" value="{{ num_exercises }}" min="1"><br>
+
+    <label>Number of sets:</label>
+    <input type="number" id="num_sets" name="num_sets" value="{{ num_sets }}" min="1"><br>
+
+    <label>Exercise duration (seconds):</label>
+    <input type="number" id="ex_duration" name="ex_duration" value="{{ ex_duration }}" min="1"><br>
+
+    <label>Rest duration between exercises (seconds):</label>
+    <input type="number" id="rest_duration" name="rest_duration" value="{{ rest_duration }}" min="0"><br>
+
+    <label>Rest between sets (minutes):</label>
+    <input type="number" id="set_rest" name="set_rest" value="{{ set_rest/60 }}" min="0" step="0.1"><br><br>
+
+    <fieldset style="margin-top: 10px;">
+      <legend><strong>Workout Type</strong></legend>
+      <label>
+        <input type="radio" name="workout_type" value="any"
+          {% if workout_type == 'any' %}checked{% endif %}> Any Exercises
+      </label><br>
+      <label>
+        <input type="radio" name="workout_type" value="core"
+          {% if workout_type == 'core' %}checked{% endif %}> Core Only
+      </label><br>
+      <label>
+        <input type="radio" name="workout_type" value="cardio"
+          {% if workout_type == 'cardio' %}checked{% endif %}> Cardio Only
+      </label>
+    </fieldset>
+    <br>
+
+    <button type="submit" name="generate" value="1">Generate / Redraw</button>
+    {% if workout %}
+      <button type="submit" name="save" value="1">Save Workout</button>
+      <button type="submit" name="start" value="1" style="margin-left:10px;">Start Timer</button>
+    {% endif %}
+
+    {% if workout %}
+      <h2>Your Workout</h2>
+      <div class="exercise-list" id="sortable">
+        {# locked_ids stored in session as strings; normalize comparisons by converting ex.id to string #}
+        {% set locked_ids = session.get('locked_ids', []) %}
+        {% for ex in workout %}
+          {% set exid = (ex.id|string) %}
+          <div class="exercise-card {% if exid in locked_ids %}locked{% endif %}" draggable="true" data-id="{{ exid }}">
+            <label class="lock-area" title="Lock exercise">
+              <input type="checkbox" class="lock-input" {% if exid in locked_ids %}checked{% endif %}>
+              <span class="lock-icon">🔒</span>
+            </label>
+            <p>{{ ex.name }}</p>
+            {% if ex.image %}
+              <img src="{{ url_for('static', filename=ex.image) }}" alt="{{ ex.name }}" onerror="this.style.display='none'">
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Hidden inputs used to submit order and locked exercise IDs -->
+      <input type="hidden" name="exercise_order" id="exercise_order">
+      <input type="hidden" name="locked_ids" id="locked_ids">
+
+      <p><strong>Total workout time: <span id="total_time">{{ total_time }}</span></strong></p>
+    {% endif %}
+  </form>
+
+  
+  <p><a href="{{ url_for('warm_up') }}">Warm Up</a></p>
+  <p><a href="{{ url_for('exercises') }}">All Exercises</a></p>
+  <p><a href="{{ url_for('analysis') }}">Analysis</a></p>
+  <p><a href="{{ url_for('history') }}">View Workout History</a></p>
+
+  <script>
+    function toggleNewUserInput() {
+      const select = document.getElementById("username");
+      const newUserDiv = document.getElementById("newUserInput");
+      newUserDiv.style.display = select.value === "" ? "block" : "none";
+    }
+
+    // Write current order and locked ids into hidden inputs
+    function writeHiddenState() {
+      const sortableEl = document.getElementById("sortable");
+      if (!sortableEl) return;
+      const order = Array.from(sortableEl.children).map(card => String(card.dataset.id));
+      document.getElementById("exercise_order").value = order.join(",");
+
+      const locked = [];
+      Array.from(sortableEl.children).forEach(card => {
+        const cb = card.querySelector(".lock-input");
+        if (cb && cb.checked) locked.push(String(card.dataset.id));
+      });
+      document.getElementById("locked_ids").value = locked.join(",");
+    }
+
+    // Set up drag-and-drop reordering
+    const sortable = document.getElementById("sortable");
+    let dragged = null;
+    if (sortable) {
+      sortable.addEventListener("dragstart", (e) => {
+        const card = e.target.closest(".exercise-card");
+        if (!card) return;
+        dragged = card;
+        card.classList.add("dragging");
+      });
+      sortable.addEventListener("dragend", (e) => {
+        if (!dragged) return;
+        dragged.classList.remove("dragging");
+        dragged = null;
+        // update hidden state after reorder
+        setTimeout(writeHiddenState, 0);
+      });
+      sortable.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const target = e.target.closest(".exercise-card");
+        if (!target || target === dragged) return;
+        const rect = target.getBoundingClientRect();
+        const mouseX = e.clientX;
+        const centerX = rect.left + rect.width / 2;
+        if (mouseX > centerX) {
+          target.insertAdjacentElement("afterend", dragged);
+        } else {
+          target.insertAdjacentElement("beforebegin", dragged);
+        }
+      });
+    }
+
+    // Hook up lock checkbox behavior and initial state
+    document.addEventListener("DOMContentLoaded", () => {
+      toggleNewUserInput();
+
+      // Set initial hidden fields
+      writeHiddenState();
+
+      const sortableEl = document.getElementById("sortable");
+      if (!sortableEl) return;
+
+      Array.from(sortableEl.children).forEach(card => {
+        const cb = card.querySelector(".lock-input");
+        if (!cb) return;
+        // ensure visual class matches checkbox
+        card.classList.toggle("locked", cb.checked);
+        cb.addEventListener("change", () => {
+          card.classList.toggle("locked", cb.checked);
+          writeHiddenState();
+        });
+      });
+
+      // keep hidden updated after drag operations (also on mouseup)
+      sortableEl.addEventListener("mouseup", () => setTimeout(writeHiddenState, 0));
+    });
+
+    // Ensure hidden inputs are set right before submit
+    const form = document.getElementById("workoutForm");
+    if (form) {
+      form.addEventListener("submit", (ev) => {
+        writeHiddenState();
+      });
+    }
+  </script>
+</body>
+</html>

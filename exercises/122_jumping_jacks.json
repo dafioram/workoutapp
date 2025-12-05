@@ -1,0 +1,15 @@
+{
+	"id": 122,
+	"name": "Jumping Jacks",
+	"muscle": "full",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "half-jacks",
+	"type": "plyometric",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/jumping_jacks.png",
+	"description": "Start with feet together and arms at your sides. Jump while spreading your legs and raising your arms overhead, then return to the starting position."
+}

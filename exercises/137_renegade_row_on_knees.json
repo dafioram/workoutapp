@@ -1,0 +1,15 @@
+{
+	"id": 137,
+	"name": "Renegade Rows (on knees)",
+	"muscle": "back",
+	"body_part": "upper body",
+	"body_weight": true,
+	"variants": "plank",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/renegade_rows_knees.png",
+	"description": "From a kneeling position, retrack one arm behind you while using the other arm for support. TThen alternate sides."
+}

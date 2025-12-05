@@ -1,0 +1,15 @@
+{
+	"id": 123,
+	"name": "Mountain Climbers",
+	"muscle": "abs",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "cross-body",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 7,
+	"image": "exercises/mountain_climbers.png",
+	"description": "Start in a plank position and drive one knee toward your chest, then quickly switch legs in a running motion while keeping your upper body stable."
+}

@@ -1,0 +1,17 @@
+{
+    "id": 159,
+    "name": "Plank Ups",
+    "muscle": "full",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+	"ab_workout": true,
+    "intensity": 5,
+    "image": "exercises/plank_ups.png",
+    "description": "Start in a plank and continuously alternate your arms between your elbows and hands."
+}

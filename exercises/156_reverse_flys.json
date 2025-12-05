@@ -1,0 +1,16 @@
+{
+    "id": 156,
+    "name": "Reverse Flys",
+    "muscle": "back",
+    "body_part": "upper body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/revese_flys.png",
+    "description": "On your stomach with your arms like a T, raise them back."
+}

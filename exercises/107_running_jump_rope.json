@@ -1,0 +1,10 @@
+{
+	"id": 107,
+	"name": "Running Jump Rope",
+	"muscle": "quads",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"description": "jog in place while also twirling your hands"
+}

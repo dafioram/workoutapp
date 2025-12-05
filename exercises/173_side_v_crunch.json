@@ -1,0 +1,17 @@
+{
+    "id": 173,
+    "name": "Side V Crunch",
+    "muscle": "core",
+    "body_part": "total",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/side_v_crunch.png",
+    "description": "Lie on one side with your bottom hand straight in-front. Now crunch both legs and your top elbow in."
+}

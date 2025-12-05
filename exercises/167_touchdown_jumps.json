@@ -1,0 +1,17 @@
+{
+    "id": 167,
+    "name": "Touchdown Jacks",
+    "muscle": "quads",
+    "body_part": "legs",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": false,
+    "image": "exercises/touchdown_jacks.png",
+    "description": "Start standing and jump your legs wide while dropping into a squat and touch the ground with one hand."
+}

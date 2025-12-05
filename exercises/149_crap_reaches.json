@@ -1,0 +1,17 @@
+{
+    "id": 149,
+    "name": "Crab Reaches",
+    "muscle": "core",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "",
+    "type": "mobility",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+	"ab_workout": true,
+    "intensity": 3,
+    "image": "exercises/crab_reaches.png",
+    "description": "Sit on the floor with hands behind you and feet flat. Lift hips off the ground into a reverse tabletop. Reach one arm overhead and kick out the opposite leg."
+}

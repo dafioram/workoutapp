@@ -1,0 +1,17 @@
+{
+    "id": 158,
+    "name": "Plank Hops",
+    "muscle": "full",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+	"ab_workout": true,
+    "intensity": 5,
+    "image": "exercises/plank_hops.png",
+    "description": "Hold a plank while hopping your legs to the side and the middle."
+}

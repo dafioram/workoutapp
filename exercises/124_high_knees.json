@@ -1,0 +1,15 @@
+{
+	"id": 124,
+	"name": "High Knees",
+	"muscle": "hip flexors",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "in-place sprint",
+	"type": "plyometric",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/high_knees.png",
+	"description": "Run in place while lifting your knees as high as possible toward your chest, keeping a fast rhythm and pumping your arms."
+}

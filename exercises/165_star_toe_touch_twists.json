@@ -1,0 +1,17 @@
+{
+    "id": 165,
+    "name": "Star Toe Touch Twists",
+    "muscle": "core",
+    "body_part": "total body",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/squat_jumps.png",
+    "description": "Sit on your butt with your legs and arms wide. Twist your torso to the right and lift your right leg while grabbing with your left hand."
+}

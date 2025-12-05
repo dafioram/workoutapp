@@ -1,0 +1,15 @@
+{
+	"id": 136,
+	"name": "Worlds Greatest Stretch",
+	"muscle": "full",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "none",
+	"type": "mobility",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 4,
+	"image": "exercises/worlds_greatest_stretch.png",
+	"description": "From a lunge position, place both hands inside your front foot. Rotate your torso and extend your inside arm toward the ceiling, then return and switch sides. This dynamic stretch improves mobility in hips, hamstrings, and spine."
+}

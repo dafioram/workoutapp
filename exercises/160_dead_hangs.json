@@ -1,0 +1,16 @@
+{
+    "id": 160,
+    "name": "Dead Hangs",
+    "muscle": "back",
+    "body_part": "upper",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "pull-up bar",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/dead_hangs.png",
+    "description": "Hang on a pull-up bar either in the air or supported"
+}

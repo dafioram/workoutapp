@@ -1,0 +1,15 @@
+{
+	"id": 126,
+	"name": "Jump Squats",
+	"muscle": "quads",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "180 turn",
+	"type": "plyometric",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 8,
+	"image": "exercises/jump_squats.png",
+	"description": "Start in a squat position, then explosively jump up, extending your arms overhead. Land softly back into the squat and repeat."
+}

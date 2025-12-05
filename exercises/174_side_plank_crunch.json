@@ -1,0 +1,17 @@
+{
+    "id": 174,
+    "name": "Side Plank Crunch",
+    "muscle": "core",
+    "body_part": "total",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": true,
+    "image": "exercises/side_plank_crunch.png",
+    "description": "Start in a side plank with your top hand extended up. Now crunch your top elbow and top leg together."
+}

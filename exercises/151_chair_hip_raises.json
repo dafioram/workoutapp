@@ -1,0 +1,16 @@
+{
+    "id": 151,
+    "name": "Chair Hip Raises",
+    "muscle": "glutes",
+    "body_part": "lower body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "chair",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/hip_raises.png",
+    "description": "Lie on your back and put your heels on a chair with knees bent. Flex your glutes and raise knees up."
+}

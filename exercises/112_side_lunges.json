@@ -1,0 +1,11 @@
+{
+	"id": 112,
+	"name": "Side Lunges",
+	"muscle": "quads",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "none",
+	"description": "start standing and throw one leg to the side and lean over it"
+}

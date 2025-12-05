@@ -1,0 +1,15 @@
+{
+	"id": 129,
+	"name": "Sumo Squat Adductor Isometric Hold",
+	"muscle": "hip adductors",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/sumo_squat_adductor_isometric.png",
+	"description": "Stand with feet wider than shoulder-width, toes turned out. Squat down and place your elbows inside your knees. Push outward gently with your elbows while actively trying to squeeze your legs inward using your adductors. Hold the isometric contraction."
+}

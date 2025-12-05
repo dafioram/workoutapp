@@ -1,0 +1,15 @@
+{
+	"id": 128,
+	"name": "Side-Lying Inner Thigh Lift",
+	"muscle": "hip adductors",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "ankle weights",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/side_lying_inner_thigh_lift.png",
+	"description": "Lie on your side and cross your top leg over in front of you. Keep your bottom leg straight and lift it upward to engage the inner thigh, then slowly lower it."
+}

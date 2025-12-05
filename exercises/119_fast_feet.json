@@ -1,0 +1,15 @@
+{
+    "id": 119,
+    "name": "Fast Feet",
+    "muscle": "full",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "none",
+    "type": "cardio",
+    "equipment": "none",
+    "link": "",
+    "active": true,
+    "intensity": 8,
+    "image": "exercises/fast_feet.png",
+    "description": "stand with feet shoulder-width apart and quickly run in place by lifting your feet only a few inches off the ground, moving them as fast as possible. Similarly pump your arms."
+}

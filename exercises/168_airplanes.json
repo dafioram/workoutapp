@@ -1,0 +1,17 @@
+{
+    "id": 168,
+    "name": "Airplanes",
+    "muscle": "thighs",
+    "body_part": "legs",
+    "body_weight": true,
+    "variants": "",
+    "type": "balance",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 3,
+	"ab_workout": false,
+    "image": "exercises/airplanes.png",
+    "description": "Stand on one leg and lean a little bit forward open your arms like a plane. Now slowly turn to the left and back to the right."
+}

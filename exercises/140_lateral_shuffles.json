@@ -1,0 +1,15 @@
+{
+	"id": 140,
+	"name": "Lateral Runs",
+	"muscle": "full",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/lateral_shuffles.png",
+	"description": "Run in place while also moving to the sides"
+}

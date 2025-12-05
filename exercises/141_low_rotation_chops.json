@@ -1,0 +1,16 @@
+{
+	"id": 141,
+	"name": "Low Rotation Chops",
+	"muscle": "core",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "",
+	"type": "cardio",
+	"equipment": "",
+	"link": "",
+	"active": true,
+	"ab_workout": true,
+	"intensity": 6,
+	"image": "exercises/low_rotation_chops.png",
+	"description": "Squat down and turn your legs to the left than the right moving your hands to that side."
+}

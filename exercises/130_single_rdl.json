@@ -1,0 +1,15 @@
+{
+	"id": 130,
+	"name": "Single-Leg Romanian Deadlift",
+	"muscle": "hamstrings",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "with weights",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/single_leg_rdl.png",
+	"description": "Stand on one leg with the other leg extended slightly back. Hinge forward at the hips, lowering your torso while keeping your back straight, and extend the free leg behind you for balance. Return to standing."
+}

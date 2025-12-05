@@ -1,0 +1,16 @@
+{
+	"id": 134,
+	"name": "Bird Dog",
+	"muscle": "core",
+	"body_part": "core",
+	"body_weight": true,
+	"variants": "",
+	"type": "mobility",
+	"equipment": "",
+	"link": "",
+	"active": true,
+	"intensity": 4,
+	"ab_workout": true,
+	"image": "exercises/bird_dog.png",
+	"description": "Start on hands and knees in a tabletop position. Extend one arm forward and the opposite leg back while keeping your spine neutral. Hold briefly, then return to start and switch sides."
+}

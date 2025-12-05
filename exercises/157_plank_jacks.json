@@ -1,0 +1,17 @@
+{
+    "id": 157,
+    "name": "Plank Jacks",
+    "muscle": "full",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+	"ab_workout": true,
+    "intensity": 5,
+    "image": "exercises/plank_jacks.png",
+    "description": "Hold a plank while opening and closing your legs"
+}

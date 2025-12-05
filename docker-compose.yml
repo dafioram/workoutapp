@@ -1,0 +1,14 @@
+version: "1.0"
+
+services:
+  workout_app:
+    build: .
+#    image: username/app:latest
+    container_name: workout_app
+    volumes:
+      - ./data:/app/workout_log
+    ports:
+      - "${APP_PORT}:5000"
+    restart: unless-stopped
+    environment:
+      - PORT=${APP_PORT}

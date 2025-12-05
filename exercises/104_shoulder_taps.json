@@ -1,0 +1,10 @@
+{
+	"id": 104,
+	"name": "Shoulder Taps",
+	"muscle": "abs",
+	"body_part": "upper",
+	"body_weight": true,
+	"variants": "",
+	"ab_workout": true,
+	"description": "Plank with shoulder taps"
+}

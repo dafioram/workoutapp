@@ -1,0 +1,15 @@
+{
+	"id": 121,
+	"name": "Criss Cross Jumps",
+	"muscle": "full",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/criss_cross_jumps.png",
+	"description": "Slight jump up and cross your legs and arms in the air, landing with one foot in front of the other, then jump again crossing the opposite leg in front. Repeat in a rhythmic motion."
+}

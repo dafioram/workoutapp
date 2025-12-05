@@ -1,0 +1,17 @@
+{
+    "id": 166,
+    "name": "Lunge Jumps",
+    "muscle": "quads",
+    "body_part": "legs",
+    "body_weight": true,
+    "variants": "Add two punches every 3",
+    "type": "cardio",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": false,
+    "image": "exercises/lunge_jumps.png",
+    "description": "Get in a lunge stance and jump in the air landing in the reverse lunge stance."
+}

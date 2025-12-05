@@ -1,0 +1,15 @@
+{
+	"id": 115,
+	"name": "Sumo Squat",
+	"muscle": "quads",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 7,
+	"image": "exercises/sumo_squat.png",
+	"description": "stand with a wide stance and your knees slightly bent, point your hands down and squat down."
+}

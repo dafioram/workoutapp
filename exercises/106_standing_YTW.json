@@ -1,0 +1,9 @@
+{
+	"id": 106,
+	"name": "Standing YTW",
+	"muscle": "back",
+	"body_part": "upper",
+	"body_weight": true,
+	"variants": "lying",
+	"description": "With your arms for a Y, then T, then W"
+}

@@ -1,0 +1,15 @@
+{
+	"id": 144,
+	"name": "Supermans",
+	"muscle": "lower back",
+	"body_part": "core",
+	"body_weight": true,
+	"variants": "none",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 4,
+	"image": "exercises/supermans.png",
+	"description": "Lie face down with arms extended overhead and legs straight. Simultaneously lift your arms, chest, and legs off the ground while squeezing your glutes and lower back."
+}

@@ -1,0 +1,16 @@
+{
+    "id": 169,
+    "name": "Wall Slides",
+    "muscle": "back",
+    "body_part": "upper body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "Wall Angles",
+    "intensity": 5,
+    "image": "exercises/wall_slides.png",
+    "description": "Back to the wall, form your arms into a T and push your arms against the wall behind you, then push your arms up."
+}

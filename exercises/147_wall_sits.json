@@ -1,0 +1,16 @@
+{
+    "id": 147,
+    "name": "Wall Sits",
+    "muscle": "quads",
+    "body_part": "legs",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "none",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 4,
+    "image": "exercises/wall_sits.png",
+    "description": "Squat down with your back against a wall and hold."
+}

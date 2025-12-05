@@ -1,0 +1,16 @@
+{
+    "id": 152,
+    "name": "Hamstring Slides",
+    "muscle": "hamstring",
+    "body_part": "lower body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "sliders",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/hamstring_slides.png",
+    "description": "Start in a bridge position and keep one leg bent while extending and contracting the leg on a slider."
+}

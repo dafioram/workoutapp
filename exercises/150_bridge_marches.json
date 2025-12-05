@@ -1,0 +1,16 @@
+{
+    "id": 150,
+    "name": "Bridge Marches",
+    "muscle": "glutes",
+    "body_part": "lower body",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "none",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 4,
+    "image": "exercises/bridge_marches.png",
+    "description": "Lie on your back with knees bent and feet flat. Lift hips into a bridge. Alternate lifting each knee toward your chest while keeping hips stable. Lower and repeat for the other leg."
+}

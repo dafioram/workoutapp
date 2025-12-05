@@ -1,0 +1,15 @@
+{
+	"id": 135,
+	"name": "Side Plank with Hip Drop",
+	"muscle": "obliques",
+	"body_part": "core",
+	"body_weight": true,
+	"variants": "weighted",
+	"type": "strength",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 7,
+	"image": "exercises/side_plank_hip_drop.png",
+	"description": "From a side plank position, lower your hips toward the floor, then lift them back up to plank height. Repeat for the set duration while keeping your body aligned."
+}

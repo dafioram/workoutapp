@@ -1,0 +1,11 @@
+{
+	"id": 113,
+	"name": "Punch and Kicks",
+	"muscle": "chest",
+	"body_part": "upper",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"description": "punch four times then kick two times"
+}

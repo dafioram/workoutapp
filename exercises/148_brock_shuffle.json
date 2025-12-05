@@ -1,0 +1,16 @@
+{
+    "id": 148,
+    "name": "Brock Shuffle",
+    "muscle": "shoulders",
+    "body_part": "full",
+    "body_weight": true,
+    "variants": "",
+    "type": "cardio",
+    "equipment": "none",
+    "link": "",
+    "active": false,
+    "alternate_name": "",
+    "intensity": 4,
+    "image": "exercises/brock_shuffle.png",
+    "description": "Start in a push up position, put all of your weight on your right hand and kick out that leg to the opposite side."
+}

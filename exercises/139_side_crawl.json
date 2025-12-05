@@ -1,0 +1,15 @@
+{
+	"id": 139,
+	"name": "Side Crawl",
+	"muscle": "delts",
+	"body_part": "upper",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 5,
+	"image": "exercises/side_crawl.png",
+	"description": "Start in a high plank position with knees crouched and your hands under your shoulders. Now shuffle with your arms and legs one way."
+}

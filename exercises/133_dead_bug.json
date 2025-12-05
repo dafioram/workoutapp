@@ -1,0 +1,16 @@
+{
+	"id": 133,
+	"name": "Dead Bug",
+	"muscle": "core",
+	"body_part": "core",
+	"body_weight": true,
+	"variants": "weighted",
+	"type": "mobility",
+	"equipment": "",
+	"link": "",
+	"active": true,
+	"ab_workout": true,
+	"intensity": 5,
+	"image": "exercises/dead_bug.png",
+	"description": "Lie on your back with arms extended toward the ceiling and knees bent at 90 degrees. Lower one arm and the opposite leg toward the floor while keeping your core engaged. Return to start and switch sides."
+}

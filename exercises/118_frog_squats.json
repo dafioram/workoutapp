@@ -1,0 +1,15 @@
+{
+    "id": 118,
+    "name": "Frog Squats",
+    "muscle": "quads",
+    "body_part": "lower",
+    "body_weight": true,
+    "variants": "none",
+    "type": "strength",
+    "equipment": "none",
+    "link": "",
+    "active": true,
+    "intensity": 6,
+    "image": "exercises/frog_squats.png",
+    "description": "stand with feet slightly wider than shoulder-width, squat down and place your hands inside your knees with elbows pushing them outward, then move your butt backwords while maintaining the same height"
+}

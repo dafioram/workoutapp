@@ -1,0 +1,16 @@
+{
+    "id": 172,
+    "name": "T Extension",
+    "muscle": "back",
+    "body_part": "upper body",
+    "body_weight": true,
+    "variants": "",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+    "image": "exercises/t_extension.png",
+    "description": "Lie on your stomach with your arms out like a T with your thumbs up. Raise your arms up from the floor."
+}

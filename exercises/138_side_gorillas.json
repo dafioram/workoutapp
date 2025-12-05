@@ -1,0 +1,15 @@
+{
+	"id": 138,
+	"name": "Side Gorillas",
+	"muscle": "legs",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "none",
+	"type": "mobility",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/side_gorillas.png",
+	"description": "From a squat position, place your hands on the floor to one side, now turn your hip and hop laterally to where you hands are."
+}

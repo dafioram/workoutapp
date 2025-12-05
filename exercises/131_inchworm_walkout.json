@@ -1,0 +1,16 @@
+{
+	"id": 131,
+	"name": "Inchworm Walkout",
+	"muscle": "full",
+	"body_part": "full",
+	"body_weight": true,
+	"variants": "",
+	"type": "strength",
+	"equipment": "",
+	"link": "",
+	"active": true,
+	"ab_workout": true,
+	"intensity": 5,
+	"image": "exercises/inchworm_walkout.png",
+	"description": "Stand tall, then bend forward and walk your hands out into a plank position. Hold briefly, then walk your hands back toward your feet and return to standing."
+}

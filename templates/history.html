@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout History</title>
+</head>
+<body>
+  <h1>Workout History for {{ username }}</h1>
+  {% if workouts %}
+    <ul>
+      {% for w in workouts %}
+        <li>
+          <strong>{{ w.timestamp }}</strong><br>
+          Sets: {{ w.num_sets }},
+          Exercise Duration: {{ w.exercise_duration }}s,
+          Rest between exercises: {{ w.rest_duration }}s,
+          Rest between sets: {{ (w.set_rest / 60)|round(1) }} min<br>
+          <em>Total Time: {{ w.total_time }}</em>
+          <ul>
+            {% for ex in w.exercises %}
+              <li>{{ ex.name }} (ID: {{ ex.id }})</li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No workouts saved yet for {{ username }}.</p>
+  {% endif %}
+  <p><a href="{{ url_for('index') }}">Back to Generator</a></p>
+</body>
+</html>

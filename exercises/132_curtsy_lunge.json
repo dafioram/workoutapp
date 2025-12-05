@@ -1,0 +1,15 @@
+{
+	"id": 132,
+	"name": "Curtsy Lunge",
+	"muscle": "glutes",
+	"body_part": "lower",
+	"body_weight": true,
+	"variants": "none",
+	"type": "cardio",
+	"equipment": "none",
+	"link": "",
+	"active": true,
+	"intensity": 6,
+	"image": "exercises/curtsy_lunge.png",
+	"description": "Stand tall and step one leg diagonally behind the other into a curtsy position, lowering into a lunge. Keep your torso upright, then return to standing and repeat on the other side."
+}

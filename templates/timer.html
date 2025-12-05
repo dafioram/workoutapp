@@ -1,0 +1,453 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout Timer</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
+    #exercise { font-size: 2.5em; margin: 20px 0; }
+    #exercise-description { font-size: 1.2em; font-style: italic; color: #555; margin: 10px 0; }
+    #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
+    #next { color: gray; margin: 10px 0; font-size: 1.2em; }
+    #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
+    #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
+    button { padding: 10px 20px; margin: 10px; }
+    #workoutList { text-align: center; margin-top: 30px; }
+    #workoutList span { margin: 0 5px; }
+    .current { font-weight: bold; color: red; }
+    .exercise-phase { background: #d4edda; }
+    .rest-phase { background: #ffeeba; }
+    .setrest-phase { background: #d1ecf1; }
+    .complete-phase { background: #e2e3e5; }
+    #progressContainer { 
+      width: 90%; 
+      height: 50px; 
+      margin: 20px auto; 
+      background: #eee; 
+      border-radius: 5px; 
+      overflow: hidden; 
+      position: relative; 
+    }
+    #progressBar { 
+      height: 100%; 
+      width: 0%; 
+      background: green; 
+      transition: width 0.25s; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: white; 
+      font-weight: bold; 
+      font-size: 1.5em; 
+    }
+    #overallContainer {
+      display: flex;
+      width: 80%;
+      height: 20px;
+      margin: 20px auto;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .segment {
+      flex-grow: 1;
+      height: 100%;
+      opacity: 0.3;
+    }
+    .segment.exercise { background: #4caf50; }
+    .segment.rest { background: #ffc107; }
+    .segment.setrest { background: #17a2b8; }
+    .segment.done { opacity: 1; }
+    .segment.active {
+      opacity: 1;
+      outline: 2px solid black;
+    }
+    #overallProgress {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: linear-gradient(to right, #4caf50, #81c784);
+      border-radius: 5px;
+      transition: width 0.25s;
+    }
+    #setExerciseInfo {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+      margin: 10px 0;
+    }
+    #usernameHeader {
+      font-size: 1.5em;
+      margin: 20px 0;
+      font-weight: normal;
+    }
+    /* New style for time left display */
+    #time-left {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #333;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="overallContainer"></div>
+  <div id="progressContainer">
+    <div id="progressBar"></div>
+  </div>
+  <!-- New div for time left display -->
+  <div id="time-left"></div>
+  <div id="phaseLabel">Get Ready</div>
+  <div id="exercise">--</div>
+  <div id="exercise-description"></div>
+  <img id="exercise-img" src="" alt="" style="display:none">
+  <div id="next"></div>
+  <img id="next-img" src="" alt="" style="display:none;">
+  <button onclick="location.href='{{ url_for('index') }}'">Back</button>
+  <button id="startBtn" onclick="startWorkout()">Start</button>
+  <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
+  <h2>Workout Plan</h2>
+  <div id="workoutList">
+    {% for ex in workout %}
+      <span data-index="{{ loop.index0 }}">{{ ex.name }}</span>{% if not loop.last %}| {% endif %}
+    {% endfor %}
+  </div>
+  <div id="setExerciseInfo"></div>
+  <h1 id="usernameHeader">Workout Timer for {{ username }}</h1>
+<script>
+  const workout = [
+    {% for ex in workout %}
+      {
+        name: "{{ ex.name }}",
+        image: {{ url_for('static', filename=ex.image)|tojson }},
+        description: "{{ ex.description|default('') }}",
+        alternate_name: "{{ ex.alternate_name|default('') }}"
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  const numSets = {{ num_sets }};
+  const exDuration = {{ ex_duration }};
+  const restDuration = {{ rest_duration }};
+  const setRest = {{ set_rest }};
+  let currentSet = 1;
+  let currentIndex = 0;
+  let phase = "ready";
+  let timer;
+  let timeLeft = 0;
+  let paused = false;
+  let workoutFinished = false; // Prevent double finish
+
+  const totalWorkoutTime = 7 + (numSets * workout.length * exDuration) + 
+                          (numSets * (workout.length - 1) * restDuration) + 
+                          ((numSets - 1) * setRest);
+  let timeRemaining = totalWorkoutTime;
+
+  const beepShort = new Audio("{{ url_for('static', filename='sounds/beep_short.mp3') }}");
+  const beepLong = new Audio("{{ url_for('static', filename='sounds/beep_long.mp3') }}");
+  const finishSound = new Audio("{{ url_for('static', filename='sounds/finish.mp3') }}"); // NEW
+
+  function playBeep(type) {
+    if (type === "exercise") beepLong.play().catch(()=>{});
+    else beepShort.play().catch(()=>{});
+  }
+
+  function playFinishSound() {
+    finishSound.play().catch(() => {});
+  }
+
+  function buildOverallBar() {
+    const container = document.getElementById("overallContainer");
+    container.innerHTML = "";
+    for (let s = 1; s <= numSets; s++) {
+      for (let i = 0; i < workout.length; i++) {
+        let seg = document.createElement("div");
+        seg.className = "segment exercise";
+        container.appendChild(seg);
+        if (i < workout.length - 1) {
+          let restSeg = document.createElement("div");
+          restSeg.className = "segment rest";
+          container.appendChild(restSeg);
+        }
+      }
+      if (s < numSets) {
+        let setRestSeg = document.createElement("div");
+        setRestSeg.className = "segment setrest";
+        container.appendChild(setRestSeg);
+      }
+    }
+  }
+
+  function updateOverallProgress() {
+    const segments = document.querySelectorAll("#overallContainer .segment");
+    let idx = 0;
+    for (let s = 1; s <= numSets; s++) {
+      for (let i = 0; i < workout.length; i++) {
+        let seg = segments[idx];
+        seg.className = "segment exercise";
+        if (s < currentSet || (s === currentSet && i < currentIndex)) {
+          seg.classList.add("done");
+        } else if (s === currentSet && i === currentIndex && phase === "exercise") {
+          seg.classList.add("active");
+        }
+        idx++;
+        if (i < workout.length - 1) {
+          seg = segments[idx];
+          seg.className = "segment rest";
+          if (s < currentSet || (s === currentSet && i < currentIndex && phase === "exercise") || (s === currentSet && i < currentIndex - 1 && phase === "rest")) {
+            seg.classList.add("done");
+          } else if (s === currentSet && i === currentIndex - 1 && phase === "rest") {
+            seg.classList.add("active");
+          }
+          idx++;
+        }
+      }
+      if (s < numSets) {
+        let seg = segments[idx];
+        seg.className = "segment setrest";
+        if (s < currentSet) {
+          seg.classList.add("done");
+        } else if (s === currentSet && phase === "setrest") {
+          seg.classList.add("active");
+        }
+        idx++;
+      }
+    }
+  }
+
+  function tick() {
+    if (paused) return;
+    if (timeLeft <= 0) {
+      clearTimeout(timer);
+      if (phase === "countdown") {
+        startExercise();
+      } else if (phase === "exercise") {
+        currentIndex++;
+        if (currentIndex < workout.length) startRest();
+        else startExercise();
+      } else if (phase === "rest") {
+        startExercise();
+      } else if (phase === "setrest") {
+        currentSet++;
+        currentIndex = 0;
+        startExercise();
+      }
+      return;
+    }
+    let total = (phase === "exercise") ? exDuration :
+                (phase === "rest") ? restDuration :
+                (phase === "setrest") ? setRest :
+                (phase === "countdown") ? 7 : 1;
+    let percent = ((total - timeLeft) / total) * 100;
+    document.getElementById("progressBar").style.width = percent + "%";
+    document.getElementById("progressBar").innerText = 
+      (phase === "exercise") ? `EXERCISE ${formatTime(timeLeft)}` : 
+      (phase === "rest") ? `REST ${formatTime(timeLeft)}` : 
+      (phase === "countdown") ? formatTime(timeLeft) : 
+      (phase === "setrest") ? formatTime(timeLeft) : "";
+    
+    if (phase !== "complete") {
+      timeRemaining--;
+      document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
+    }
+    updateOverallProgress();
+    timeLeft--;
+    timer = setTimeout(tick, 1000);
+  }
+
+  function updatePhaseDisplay(label, phaseClass, barColor) {
+    document.getElementById("phaseLabel").innerText = label;
+    document.body.className = phaseClass;
+    document.getElementById("progressBar").style.background = barColor;
+  }
+
+  function startWorkout() {
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("pauseBtn").disabled = false;
+    phase = "countdown";
+    timeLeft = 7;
+    updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
+    document.getElementById("exercise").innerText = "Starting soon...";
+    document.getElementById("setExerciseInfo").innerText = "";
+    document.getElementById("exercise-description").innerText = "";
+    document.getElementById("progressBar").innerText = formatTime(timeLeft);
+    document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
+    tick();
+  }
+
+  function startExercise() {
+    if (currentIndex >= workout.length) {
+      if (currentSet < numSets) {
+        phase = "setrest";
+        timeLeft = setRest;
+        updatePhaseDisplay("Rest Between Sets", "setrest-phase", "blue");
+        document.getElementById("exercise").innerText = `Set Rest`;
+        document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
+        document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
+        document.getElementById("exercise-description").innerText = "";
+        showImage(null, null);
+        highlightCurrent(-1);
+        playBeep("rest");
+        tick();
+      } else {
+        finishWorkout(); // NEW: Dedicated finish function
+      }
+      return;
+    }
+    phase = "exercise";
+    const ex = workout[currentIndex];
+    timeLeft = exDuration;
+    updatePhaseDisplay("", "exercise-phase", "green");
+    document.getElementById("exercise").innerText = ex.alternate_name ? `${ex.name} (${ex.alternate_name})` : ex.name;
+    document.getElementById("exercise-description").innerText = ex.description || "";
+    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
+    const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
+    document.getElementById("next").innerText = nextEx
+        ? `Next: ${nextEx.name}`
+        : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
+    showImage(ex.image, nextEx ? nextEx.image : null);
+    highlightCurrent(currentIndex);
+    playBeep("exercise");
+    tick();
+  }
+
+  function startRest() {
+    phase = "rest";
+    timeLeft = restDuration;
+    updatePhaseDisplay("", "rest-phase", "orange");
+    document.getElementById("exercise").innerText = `Rest`;
+    document.getElementById("exercise-description").innerText = "";
+    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
+    const nextEx = workout[currentIndex];
+    document.getElementById("next").innerText = `Next: ${nextEx.name}`;
+    showImage(null, nextEx.image);
+    highlightCurrent(-1);
+    playBeep("rest");
+    tick();
+  }
+
+  // NEW: Dedicated finish function
+  function finishWorkout() {
+    if (workoutFinished) return;
+    workoutFinished = true;
+
+    phase = "complete";
+    updatePhaseDisplay("Workout Complete!", "complete-phase", "gray");
+    document.getElementById("exercise").innerHTML = "<span style='font-size: 2em;'>Well Done!</span>";
+    document.getElementById("setExerciseInfo").innerText = `All ${numSets} sets completed!`;
+    document.getElementById("progressBar").innerHTML = "<div style='font-size: 1.8em; animation: pulse 1.5s infinite;'>FINISHED</div>";
+    document.getElementById("next").innerHTML = "<strong>Great job! Take a rest.</strong>";
+    document.getElementById("time-left").innerText = "Workout Complete!";
+    showImage(null, null);
+    highlightCurrent(-1);
+    updateOverallProgress();
+
+    // Play finish sound
+    playFinishSound();
+
+    // Trigger confetti
+    createConfetti();
+
+    // Auto-save
+    autoSaveWorkout();
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById("pauseBtn");
+    if (paused) {
+      btn.innerText = "Resume";
+      clearTimeout(timer);
+    } else {
+      btn.innerText = "Pause";
+      tick();
+    }
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2,"0")}`;
+  }
+
+  function highlightCurrent(index) {
+    const items = document.querySelectorAll("#workoutList span");
+    items.forEach((span, i) => {
+      if (i === index) span.classList.add("current");
+      else span.classList.remove("current");
+    });
+  }
+
+  function showImage(currImg, nextImg) {
+    const exImg = document.getElementById("exercise-img");
+    const nextExImg = document.getElementById("next-img");
+    if (currImg) {
+      exImg.src = currImg;
+      exImg.style.display = "block";
+      exImg.onerror = () => exImg.style.display = "none";
+    } else {
+      exImg.style.display = "none";
+    }
+    if (nextImg) {
+      nextExImg.src = nextImg;
+      nextExImg.style.display = "block";
+      nextExImg.onerror = () => nextExImg.style.display = "none";
+    } else {
+      nextExImg.style.display = "none";
+    }
+  }
+
+  function autoSaveWorkout() {
+    fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "saved") {
+          document.getElementById("next").innerHTML += "<br><em>Workout saved!</em>";
+        }
+      });
+  }
+
+  // NEW: Confetti effect
+  function createConfetti() {
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f3722c'];
+    const confettiCount = 80;
+    for (let i = 0; i < confettiCount; i++) {
+      const confetti = document.createElement('div');
+      confetti.style.position = 'fixed';
+      confetti.style.left = Math.random() * 100 + 'vw';
+      confetti.style.top = '-10px';
+      confetti.style.width = '10px';
+      confetti.style.height = '10px';
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+      confetti.style.pointerEvents = 'none';
+      confetti.style.zIndex = '9999';
+      confetti.style.animation = `fall ${3 + Math.random() * 2}s linear forwards`;
+      document.body.appendChild(confetti);
+
+      setTimeout(() => confetti.remove(), 5000);
+    }
+  }
+
+  // Add fall animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fall {
+      to {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    buildOverallBar();
+    document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
+  });
+</script>
+</body>
+</html>
