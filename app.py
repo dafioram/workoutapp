@@ -1,28 +1,21 @@
 from flask import Flask, render_template, request, session, jsonify, redirect, url_for
 import os, json, random, datetime
 from collections import defaultdict
+import database  # Import the new database module
 
 app = Flask(__name__)
 app.secret_key = "supersecret"
 
 EXERCISE_DIR = "exercises"
-WORKOUT_LOG_DIR = "workout_log"
-
-def get_workout_log_path():
-    username = session.get("username", "Bruno")
-    return os.path.join(WORKOUT_LOG_DIR, f"workout_log_{username}.json")
 
 def get_existing_users():
-    os.makedirs(WORKOUT_LOG_DIR, exist_ok=True)
-    users = []
-    for file in os.listdir(WORKOUT_LOG_DIR):
-        if file.startswith("workout_log_") and file.endswith(".json"):
-            username = file[len("workout_log_"):-len(".json")]
-            users.append(username)
-    return sorted(users)
+    return database.get_all_users()
 
 def load_exercises(workout_type="any"):
     exercises = []
+    if not os.path.exists(EXERCISE_DIR):
+        return []
+        
     for file in os.listdir(EXERCISE_DIR):
         if file.endswith(".json"):
             fpath = os.path.join(EXERCISE_DIR, file)
@@ -48,30 +41,23 @@ def load_exercises(workout_type="any"):
                     exercises.append(exercise_loaded)
     return exercises
 
-def load_workouts():
-    try:
-        return json.load(open(get_workout_log_path()))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
 def save_workout(workout, num_sets, ex_duration, rest_duration, set_rest):
-    os.makedirs(WORKOUT_LOG_DIR, exist_ok=True)
+    username = session.get("username", "Bruno")
+    # Simplify workout list to just ID and Name for storage
     slimmed = [{"id": ex["id"], "name": ex["name"]} for ex in workout]
-    entry = {
-        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
-        "exercises": slimmed,
-        "num_sets": num_sets,
-        "exercise_duration": ex_duration,
-        "rest_duration": rest_duration,
-        "location": "home",
-        "RPE": 5,
-        "set_rest": set_rest,
-        "notes": ""
-    }
-    data = load_workouts()
-    data.append(entry)
-    with open(get_workout_log_path(), "w") as f:
-        json.dump(data, f, indent=2)
+    
+    # Save to SQLite
+    database.insert_workout(
+        username=username,
+        exercises=slimmed,
+        num_sets=num_sets,
+        ex_duration=ex_duration,
+        rest_duration=rest_duration,
+        set_rest=set_rest,
+        location="home",
+        rpe=5,
+        notes=""
+    )
 
 def calculate_total_time(num_exercises, num_sets, ex_duration, rest_duration, set_rest):
     if num_exercises <= 0 or num_sets <= 0:
@@ -169,29 +155,23 @@ def index():
     if "locked_ids" not in session:
         session["locked_ids"] = []
     else:
-        # normalize to list of strings
         session["locked_ids"] = [str(x) for x in session.get("locked_ids", [])]
 
     if request.method == "POST":
         # ---------- GENERATE / REDRAW ----------
         if "generate" in request.form:
-            # read current order (IDs) from form (client writes this reliably)
             exercise_order_raw = request.form.get("exercise_order", "")
             order_ids = [s for s in exercise_order_raw.split(",") if s.strip() != ""]
-            # normalize to strings
             order_ids = [str(s) for s in order_ids]
 
-            # build mapping of existing session workout exercises by id
             old_workout = session.get("current_workout", []) or []
             old_by_id = {str(ex.get("id")): ex for ex in old_workout}
 
-            # old_in_order: if orderIds provided, use that to order old_workout; else fallback to old_workout order
             if order_ids:
                 old_in_order = []
                 for oid in order_ids:
                     if oid in old_by_id:
                         old_in_order.append(old_by_id[oid])
-                # any leftover in session not in order_ids -> append
                 for ex in old_workout:
                     sid = str(ex.get("id"))
                     if sid not in order_ids:
@@ -199,9 +179,6 @@ def index():
             else:
                 old_in_order = old_workout[:]
 
-            # locked ids submitted in form (client writes these). 
-            # Important: treat presence of locked_ids in the form (even if empty) as an explicit client intent to set locks -> use it.
-            # Only fallback to session stored locks if the client did NOT send the locked_ids field at all.
             if 'locked_ids' in request.form:
                 locked_ids_raw = request.form.get("locked_ids", "")
                 if locked_ids_raw and locked_ids_raw.strip() != "":
@@ -210,85 +187,65 @@ def index():
                     locked_ids = []
             else:
                 locked_ids = session.get("locked_ids", [])
-            # normalize to strings
             locked_ids = [str(x) for x in locked_ids]
-            session["locked_ids"] = locked_ids  # persist
+            session["locked_ids"] = locked_ids
 
-            # Build new_workout list with length = num_exercises and fill locked exercises into same slot index if possible
             new_workout = [None] * max(0, num_exercises)
-
-            # Build id->exercise map combining currently available exercises and old_workout, to be able to pull locked items
             combined_map = {str(e.get("id")): e for e in exercises}
-            combined_map.update(old_by_id)  # old entries override if necessary
+            combined_map.update(old_by_id)
 
-            # Place locked exercises into same indices as they appeared in old_in_order (if within requested size)
             for idx, ex in enumerate(old_in_order):
                 exid = str(ex.get("id"))
                 if exid in locked_ids:
                     if idx < len(new_workout):
-                        # if we have that exercise available in combined_map, use that object
                         candidate = combined_map.get(exid, ex)
                         new_workout[idx] = candidate
 
-            # For locked ids that were not present in old_in_order (maybe came from session or external),
-            # try to place them in first available None slot (preserve lock but no original index)
             for lid in locked_ids:
                 if any((item and str(item.get("id")) == lid) for item in new_workout):
                     continue
-                # if we have a candidate in combined_map
                 candidate = combined_map.get(lid)
                 if candidate:
-                    # place into first empty slot
                     try:
                         first_none = new_workout.index(None)
                         new_workout[first_none] = candidate
                     except ValueError:
-                        # no slot available; we'll append later
                         new_workout.append(candidate)
 
-            # Build pool of available exercises to fill the remaining slots (exclude locked ids and those already used)
             used_ids = set(str(e.get("id")) for e in new_workout if e)
             pool = [e for e in exercises if str(e.get("id")) not in used_ids and str(e.get("id")) not in locked_ids]
 
-            # Fill empty slots with random distinct choices from pool; if pool is exhausted allow duplicates (best-effort)
             slots_to_fill = [i for i, v in enumerate(new_workout) if v is None]
             chosen = []
             if pool:
                 take = min(len(pool), len(slots_to_fill))
                 chosen = random.sample(pool, take)
-            # if still need more, allow duplicates from non-locked exercises (can include ones already chosen)
             if len(chosen) < len(slots_to_fill):
                 non_locked_pool = [e for e in exercises if str(e.get("id")) not in locked_ids]
                 while len(chosen) < len(slots_to_fill) and non_locked_pool:
                     chosen.append(random.choice(non_locked_pool))
 
-            # place chosen into slots
             for pos_idx, slot in enumerate(slots_to_fill):
                 if pos_idx < len(chosen):
                     new_workout[slot] = chosen[pos_idx]
                 else:
                     new_workout[slot] = None
 
-            # Clean None and ensure final length = num_exercises (append random non-locked if needed)
             final_workout = [e for e in new_workout if e is not None]
             if len(final_workout) < num_exercises:
                 non_locked_pool = [e for e in exercises if str(e.get("id")) not in locked_ids]
                 while len(final_workout) < num_exercises and non_locked_pool:
                     final_workout.append(random.choice(non_locked_pool))
 
-            # if too long, trim
             if len(final_workout) > num_exercises:
                 final_workout = final_workout[:num_exercises]
 
-            # Persist to session
             session["current_workout"] = final_workout
             session["num_sets"] = num_sets
             session["ex_duration"] = ex_duration
             session["rest_duration"] = rest_duration
             session["set_rest"] = set_rest
             message = ""
-
-            # IMPORTANT: update local 'workout' variable so subsequent code (and template rendering) sees the new workout
             workout = final_workout
 
         # ---------- START ----------
@@ -361,15 +318,19 @@ def index():
 
 @app.route("/history")
 def history():
-    workouts = load_workouts()
-    workouts = sorted(workouts, key=lambda w: w["timestamp"], reverse=True)
+    username = session.get("username", "Bruno")
+    # Fetch from DB (Static History)
+    workouts = database.get_workouts_for_user(username)
+    
     for w in workouts:
-        total_sec = calculate_total_time(len(w["exercises"]), w.get("num_sets", 1),
+        total_sec = calculate_total_time(len(w.get("exercises", [])), 
+                                         w.get("num_sets", 1),
                                          w.get("exercise_duration", 30),
                                          w.get("rest_duration", 15),
                                          w.get("set_rest", 60))
         w["total_time"] = format_time(total_sec)
-    return render_template("history.html", workouts=workouts, username=session.get("username", "Bruno"))
+    
+    return render_template("history.html", workouts=workouts, username=username)
 
 @app.route("/warm_up")
 def warm_up():
@@ -379,36 +340,42 @@ def warm_up():
 def analysis():
     import glob
     from datetime import datetime
-    if not os.path.exists(get_workout_log_path()):
-        workouts = []
-    else:
-        with open(get_workout_log_path(), "r") as f:
-            workouts = json.load(f)
+    
+    username = session.get("username", "Bruno")
+    # Fetch from DB (Dynamic Analytics)
+    workouts = database.get_workouts_for_user(username)
+
     def parse_dt(s):
         return datetime.fromisoformat(s)
+
+    # Sort ASC for trend lines
     workouts_sorted = sorted([w for w in workouts if w.get("timestamp")], key=lambda w: w["timestamp"])
+    
     trend_labels = []
     trend_exercise = []
     trend_rest = []
+    
     for w in workouts_sorted:
         ts = w.get("timestamp")
         dt = parse_dt(ts)
         trend_labels.append(dt.strftime("%Y-%m-%d %H:%M"))
         num_ex = len(w.get("exercises", []))
-        num_sets = int(w.get("num_sets",1))
-        ex_dur = int(w.get("exercise_duration",0))
-        rest_dur = int(w.get("rest_duration",0))
-        set_rest = int(w.get("set_rest",0))
+        num_sets = int(w.get("num_sets", 1))
+        ex_dur = int(w.get("exercise_duration", 0))
+        rest_dur = int(w.get("rest_duration", 0))
+        set_rest = int(w.get("set_rest", 0))
         exercise_time = num_sets * num_ex * ex_dur
         rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
         trend_exercise.append(exercise_time)
         trend_rest.append(rest_time)
+
     def bucket_key(dt, by="week"):
         if by == "week":
             y, wn, _ = dt.isocalendar()
             return f"{y}-W{wn:02d}"
         else:
             return dt.strftime("%Y-%m")
+
     def aggregate(by="week"):
         totals = {}
         for w in workouts:
@@ -419,19 +386,25 @@ def analysis():
             key = bucket_key(dt, by)
             if key not in totals:
                 totals[key] = {"exercise": 0, "rest": 0, "muscles": {}, "workout_count": 0}
+            
             num_ex = len(w.get("exercises", []))
             num_sets = int(w.get("num_sets", 1))
             ex_dur = int(w.get("exercise_duration", 0))
             rest_dur = int(w.get("rest_duration", 0))
             set_rest = int(w.get("set_rest", 0))
+            
             exercise_time = num_sets * num_ex * ex_dur
             rest_time = num_sets * max(0, num_ex - 1) * rest_dur + max(0, num_sets - 1) * set_rest
+            
             totals[key]["exercise"] += exercise_time
             totals[key]["rest"] += rest_time
             totals[key]["workout_count"] += 1
+            
+            # Use 'glob' to find the current live JSON definition for analysis
             for ex in w.get("exercises", []):
                 ex_id = ex.get("id")
                 muscle = "Other"
+                # This works because your files are named "101_pushups.json" and your ID is 101.
                 matches = glob.glob(f"exercises/{ex_id}_*.json")
                 if matches:
                     try:
@@ -440,10 +413,13 @@ def analysis():
                             muscle = ed.get("muscle", "Other")
                     except Exception:
                         muscle = "Other"
+                
                 t = num_sets * ex_dur
                 totals[key]["muscles"][muscle] = totals[key]["muscles"].get(muscle, 0) + t
+        
         ordered = dict(sorted(totals.items()))
         return ordered
+
     weekly_totals = aggregate("week")
     monthly_totals = aggregate("month")
     weekly_workout_counts = {k: v["workout_count"] for k, v in weekly_totals.items()}
@@ -458,11 +434,14 @@ def analysis():
         monthly=monthly_totals,
         weekly_workout_counts=weekly_workout_counts,
         monthly_workout_counts=monthly_workout_counts,
-        username=session.get("username", "Bruno")
+        username=username
     )
 
 if __name__ == "__main__":
     import os
+    
+    # Initialize DB tables in 'data/' folder on startup
+    database.init_db()
     
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
