@@ -1,26 +1,52 @@
 import sqlite3
 import datetime
 import os
+import json
+import glob
 
-# Configuration: Save DB in a 'data' folder
+# Configuration
 DB_FOLDER = "data"
 DB_NAME = "workout_app.db"
 DB_PATH = os.path.join(DB_FOLDER, DB_NAME)
+EXERCISE_DIR = "exercises"
 
 def get_db():
-    # Ensure the folder exists before connecting
     os.makedirs(DB_FOLDER, exist_ok=True)
-    
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    """Initializes the database with workouts and workout_exercises tables."""
+    """
+    Initializes the database.
+    If the 'exercises' table is empty, it loads data from JSON files (One-time seed).
+    """
     conn = get_db()
     c = conn.cursor()
     
-    # Table for the overall workout session (The "Header")
+    # 1. Table: The Master Exercise List
+    # Updated to include all fields from your JSON example (15 columns)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS exercises (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            muscle TEXT,
+            body_part TEXT,
+            body_weight BOOLEAN DEFAULT 1,
+            variants TEXT,
+            type TEXT,
+            equipment TEXT,
+            link TEXT,
+            active BOOLEAN DEFAULT 1,
+            alternate_name TEXT,
+            intensity INTEGER DEFAULT 5,
+            ab_workout BOOLEAN DEFAULT 0,
+            image TEXT,
+            description TEXT
+        )
+    ''')
+
+    # 2. Table: Workout Headers
     c.execute('''
         CREATE TABLE IF NOT EXISTS workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,60 +62,115 @@ def init_db():
         )
     ''')
 
-    # Table for individual exercises within a workout (The "Line Items")
-    # 'order_index' ensures we remember the sequence (e.g., Pushups 1st, Squats 2nd)
+    # 3. Table: Workout Log (Junction Table)
     c.execute('''
         CREATE TABLE IF NOT EXISTS workout_exercises (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             workout_id INTEGER,
-            exercise_id TEXT,
-            exercise_name TEXT,
+            exercise_id INTEGER,
             order_index INTEGER,
-            FOREIGN KEY(workout_id) REFERENCES workouts(id)
+            FOREIGN KEY(workout_id) REFERENCES workouts(id),
+            FOREIGN KEY(exercise_id) REFERENCES exercises(id)
         )
     ''')
     
     conn.commit()
+    
+    # --- SEEDING LOGIC ---
+    # Check if we need to populate exercises from JSON
+    c.execute("SELECT count(*) FROM exercises")
+    if c.fetchone()[0] == 0:
+        print("--- Database empty. Seeding exercises from JSON files... ---")
+        seed_exercises_from_json(c)
+        conn.commit()
+        print("--- Seeding complete. ---")
+    
     conn.close()
 
-def insert_workout(username, exercises, num_sets, ex_duration, rest_duration, set_rest, location="home", rpe=5, notes=""):
+def seed_exercises_from_json(cursor):
+    """Reads JSON files and inserts them into the SQLite exercises table."""
+    if not os.path.exists(EXERCISE_DIR):
+        print(f"Warning: {EXERCISE_DIR} not found. Skipping seed.")
+        return
+
+    json_files = glob.glob(os.path.join(EXERCISE_DIR, "*.json"))
+    
+    for filepath in json_files:
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+                
+                # Extract fields with defaults based on your JSON example
+                ex_id = int(data.get("id"))
+                name = data.get("name", "Unknown")
+                muscle = data.get("muscle", "Other")
+                body_part = data.get("body_part", "full")
+                
+                # Boolean conversion
+                bw = data.get("body_weight", True)
+                body_weight = 1 if bw else 0
+                
+                variants = data.get("variants", "")
+                ex_type = data.get("type", "strength")
+                equipment = data.get("equipment", "")
+                link = data.get("link", "")
+                
+                act = data.get("active", True)
+                active = 1 if act else 0
+                
+                alternate_name = data.get("alternate_name", "")
+                intensity = data.get("intensity", 5)
+                
+                ab = data.get("ab_workout", False)
+                ab_workout = 1 if ab else 0
+                
+                image = data.get("image", "")
+                description = data.get("description", "")
+
+                cursor.execute('''
+                    INSERT OR IGNORE INTO exercises 
+                    (id, name, muscle, body_part, body_weight, variants, type, 
+                     equipment, link, active, alternate_name, intensity, ab_workout, image, description)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (ex_id, name, muscle, body_part, body_weight, variants, ex_type, 
+                      equipment, link, active, alternate_name, intensity, ab_workout, image, description))
+        except Exception as e:
+            print(f"Error loading {filepath}: {e}")
+
+# --- READ OPERATIONS ---
+
+def get_all_exercises(workout_type="any"):
     """
-    Saves a workout.
-    exercises: list of dicts (must contain 'id' and 'name')
+    Fetches available exercises from DB.
     """
     conn = get_db()
     c = conn.cursor()
     
-    timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+    query = "SELECT * FROM exercises WHERE active = 1"
     
-    # 1. Insert the workout header
-    c.execute('''
-        INSERT INTO workouts 
-        (username, timestamp, num_sets, exercise_duration, rest_duration, set_rest, location, rpe, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (username, timestamp, num_sets, ex_duration, rest_duration, set_rest, location, rpe, notes))
-    
-    workout_id = c.lastrowid
-    
-    # 2. Insert each exercise with its order index
-    for idx, ex in enumerate(exercises):
-        c.execute('''
-            INSERT INTO workout_exercises (workout_id, exercise_id, exercise_name, order_index)
-            VALUES (?, ?, ?, ?)
-        ''', (workout_id, ex.get("id"), ex.get("name"), idx))
+    # Basic filtering logic
+    if workout_type == "core":
+        query += " AND ab_workout = 1"
+    elif workout_type == "cardio":
+        query += " AND type = 'cardio'" 
         
-    conn.commit()
+    c.execute(query)
+    rows = c.fetchall()
     conn.close()
+    return [dict(row) for row in rows]
+
+def get_exercise_map():
+    """Returns a dictionary {id: exercise_dict} for fast lookups."""
+    exercises = get_all_exercises(workout_type="any")
+    return {ex['id']: ex for ex in exercises}
 
 def get_workouts_for_user(username):
     """
-    Returns a list of workout dictionaries formatted exactly like your old JSON structure
-    so that History and Analysis pages work without HTML changes.
+    Returns workouts with exercises joined from the master table.
     """
     conn = get_db()
     c = conn.cursor()
     
-    # Get all workouts for user, sorted by newest first
     c.execute('SELECT * FROM workouts WHERE username = ? ORDER BY timestamp DESC', (username,))
     workout_rows = c.fetchall()
     
@@ -98,18 +179,28 @@ def get_workouts_for_user(username):
     for w_row in workout_rows:
         w_dict = dict(w_row)
         
-        # Get exercises for this specific workout, ordered correctly
+        # JOIN to get the Name and Muscle from the master exercises table
         c.execute('''
-            SELECT exercise_id, exercise_name 
-            FROM workout_exercises 
-            WHERE workout_id = ? 
-            ORDER BY order_index ASC
+            SELECT 
+                we.exercise_id, 
+                e.name, 
+                e.muscle 
+            FROM workout_exercises we
+            LEFT JOIN exercises e ON we.exercise_id = e.id
+            WHERE we.workout_id = ? 
+            ORDER BY we.order_index ASC
         ''', (w_dict['id'],))
         
         ex_rows = c.fetchall()
         
-        # Reconstruct exercise list
-        exercises = [{"id": r['exercise_id'], "name": r['exercise_name']} for r in ex_rows]
+        exercises = []
+        for r in ex_rows:
+            ex_data = {
+                "id": r['exercise_id'],
+                "name": r['name'] if r['name'] else f"Unknown ({r['exercise_id']})",
+                "muscle": r['muscle']
+            }
+            exercises.append(ex_data)
         
         w_dict['exercises'] = exercises
         results.append(w_dict)
@@ -118,12 +209,35 @@ def get_workouts_for_user(username):
     return results
 
 def get_all_users():
-    """Returns a sorted list of distinct usernames found in the database."""
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT DISTINCT username FROM workouts")
     rows = c.fetchall()
     conn.close()
+    return sorted([row['username'] for row in rows])
+
+# --- WRITE OPERATIONS ---
+
+def insert_workout(username, exercises, num_sets, ex_duration, rest_duration, set_rest, location="home", rpe=5, notes=""):
+    conn = get_db()
+    c = conn.cursor()
     
-    users = [row['username'] for row in rows]
-    return sorted(users)
+    timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+    
+    c.execute('''
+        INSERT INTO workouts 
+        (username, timestamp, num_sets, exercise_duration, rest_duration, set_rest, location, rpe, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (username, timestamp, num_sets, ex_duration, rest_duration, set_rest, location, rpe, notes))
+    
+    workout_id = c.lastrowid
+    
+    for idx, ex in enumerate(exercises):
+        # We only save the ID. Logic assumes ID is an integer.
+        c.execute('''
+            INSERT INTO workout_exercises (workout_id, exercise_id, order_index)
+            VALUES (?, ?, ?)
+        ''', (workout_id, ex.get("id"), idx))
+        
+    conn.commit()
+    conn.close()
