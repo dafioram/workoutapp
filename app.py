@@ -222,7 +222,8 @@ def index():
         total_time=total_time,
         username=session["username"],
         existing_users=database.get_all_users(),
-        workout_type=session.get("workout_type", "any")
+        workout_type=session.get("workout_type", "any"),
+        locked_ids=session.get("locked_ids", [])
     )
 
 @app.route("/history")
@@ -336,5 +337,6 @@ def analysis():
 if __name__ == "__main__":
     import os
     database.init_db()
+    database.backup_db() # Added backup call
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

@@ -25,7 +25,6 @@ def init_db():
     c = conn.cursor()
     
     # 1. Table: The Master Exercise List
-    # Updated to include all fields from your JSON example (15 columns)
     c.execute('''
         CREATE TABLE IF NOT EXISTS exercises (
             id INTEGER PRIMARY KEY,
@@ -77,7 +76,6 @@ def init_db():
     conn.commit()
     
     # --- SEEDING LOGIC ---
-    # Check if we need to populate exercises from JSON
     c.execute("SELECT count(*) FROM exercises")
     if c.fetchone()[0] == 0:
         print("--- Database empty. Seeding exercises from JSON files... ---")
@@ -100,13 +98,11 @@ def seed_exercises_from_json(cursor):
             with open(filepath, 'r') as f:
                 data = json.load(f)
                 
-                # Extract fields with defaults based on your JSON example
                 ex_id = int(data.get("id"))
                 name = data.get("name", "Unknown")
                 muscle = data.get("muscle", "Other")
                 body_part = data.get("body_part", "full")
                 
-                # Boolean conversion
                 bw = data.get("body_weight", True)
                 body_weight = 1 if bw else 0
                 
@@ -140,15 +136,12 @@ def seed_exercises_from_json(cursor):
 # --- READ OPERATIONS ---
 
 def get_all_exercises(workout_type="any"):
-    """
-    Fetches available exercises from DB.
-    """
+    """Fetches available exercises from DB."""
     conn = get_db()
     c = conn.cursor()
     
     query = "SELECT * FROM exercises WHERE active = 1"
     
-    # Basic filtering logic
     if workout_type == "core":
         query += " AND ab_workout = 1"
     elif workout_type == "cardio":
@@ -165,9 +158,7 @@ def get_exercise_map():
     return {ex['id']: ex for ex in exercises}
 
 def get_workouts_for_user(username):
-    """
-    Returns workouts with exercises joined from the master table.
-    """
+    """Returns workouts with exercises joined from the master table."""
     conn = get_db()
     c = conn.cursor()
     
@@ -179,7 +170,6 @@ def get_workouts_for_user(username):
     for w_row in workout_rows:
         w_dict = dict(w_row)
         
-        # JOIN to get the Name and Muscle from the master exercises table
         c.execute('''
             SELECT 
                 we.exercise_id, 
@@ -233,7 +223,6 @@ def insert_workout(username, exercises, num_sets, ex_duration, rest_duration, se
     workout_id = c.lastrowid
     
     for idx, ex in enumerate(exercises):
-        # We only save the ID. Logic assumes ID is an integer.
         c.execute('''
             INSERT INTO workout_exercises (workout_id, exercise_id, order_index)
             VALUES (?, ?, ?)
@@ -241,3 +230,31 @@ def insert_workout(username, exercises, num_sets, ex_duration, rest_duration, se
         
     conn.commit()
     conn.close()
+
+# --- BACKUP OPERATIONS ---
+
+def backup_db():
+    """Backs up the database to data/backup with a timestamp."""
+    backup_dir = os.path.join(DB_FOLDER, "backup")
+    
+    # Create backup folder if it doesn't exist
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_filename = f"workout_app_{timestamp}.db"
+    backup_path = os.path.join(backup_dir, backup_filename)
+    
+    if not os.path.exists(DB_PATH):
+        # No DB to backup yet
+        return
+
+    try:
+        # Use SQLite's native backup API for safety
+        source = get_db()
+        dest = sqlite3.connect(backup_path)
+        source.backup(dest)
+        dest.close()
+        source.close()
+        print(f"--- Database backed up to {backup_path} ---")
+    except Exception as e:
+        print(f"Error creating database backup: {e}")
