@@ -133,6 +133,25 @@ def index():
             session["locked_ids"] = locked_ids
 
             old_workout = session.get("current_workout", [])
+            
+            # --- FIX: READ ORDER FROM FORM BEFORE LOCKING ---
+            # This ensures that if you dragged an item to slot 2, it stays in slot 2.
+            exercise_order = request.form.get("exercise_order", "")
+            if exercise_order:
+                order_ids = [int(s) for s in exercise_order.split(",") if s.strip()]
+                current_map = {int(ex["id"]): ex for ex in old_workout}
+                reordered = []
+                # 1. Add exercises in the order the user sees on screen
+                for oid in order_ids:
+                    if oid in current_map:
+                        reordered.append(current_map[oid])
+                # 2. Add any that might be missing (just in case)
+                for ex in old_workout:
+                    if int(ex["id"]) not in order_ids:
+                        reordered.append(ex)
+                old_workout = reordered
+            # ------------------------------------------------
+
             old_by_id = {int(ex["id"]): ex for ex in old_workout}
 
             combined_map = {int(e["id"]): e for e in available_exercises}
@@ -140,12 +159,12 @@ def index():
 
             new_workout = [None] * num_exercises
             
-            # 1. Place Locked exercises
+            # 1. Place Locked exercises using the UPDATED order
             for i, ex in enumerate(old_workout):
                 if i < num_exercises and int(ex["id"]) in locked_ids:
                     new_workout[i] = combined_map.get(int(ex["id"]))
 
-            # 2. Fill specific locked IDs
+            # 2. Fill specific locked IDs that might have been lost in resizing
             for lid in locked_ids:
                 if not any(item and int(item["id"]) == lid for item in new_workout):
                      cand = combined_map.get(lid)
@@ -337,6 +356,6 @@ def analysis():
 if __name__ == "__main__":
     import os
     database.init_db()
-    database.backup_db() # Added backup call
+    database.backup_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
