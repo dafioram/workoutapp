@@ -1,8 +1,14 @@
 from flask import Flask, render_template, request, session, jsonify, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 import random
 import database  # Uses the new DB logic
 
 app = Flask(__name__)
+
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
+
 app.secret_key = "supersecret"
 
 # --- HELPER FUNCTIONS ---
