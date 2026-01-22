@@ -1,0 +1,17 @@
+{
+    "id": 176,
+    "name": "clamshells",
+    "muscle": "core",
+    "body_part": "glutes",
+    "body_weight": true,
+    "variants": "Don't raise the bottom hip",
+    "type": "strength",
+    "equipment": "",
+    "link": "",
+    "active": true,
+    "alternate_name": "",
+    "intensity": 5,
+	"ab_workout": false,
+    "image": "exercises/clamshells.png",
+    "description": "Start on your side, rotated downward, and then push up to a side plank on your knees while rotating out and extending your opposite leg high"
+}
