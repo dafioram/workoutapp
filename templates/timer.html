@@ -10,7 +10,22 @@
     #next { color: gray; margin: 10px 0; font-size: 1.2em; }
     #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
     #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
-    button { padding: 10px 20px; margin: 10px; }
+    
+    /* Updated Button Styling */
+    button { 
+      padding: 15px 30px; 
+      margin: 10px; 
+      font-size: 1.2em; 
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      color: white;
+    }
+    #backBtn { background-color: #6c757d; }
+    #startBtn { background-color: #28a745; }
+    #pauseBtn { background-color: #ffc107; color: black; }
+    #resumeBtn { background-color: #28a745; }
+
     #workoutList { text-align: center; margin-top: 30px; }
     #workoutList span { margin: 0 5px; }
     .current { font-weight: bold; color: red; }
@@ -60,14 +75,6 @@
       opacity: 1;
       outline: 2px solid black;
     }
-    #overallProgress {
-      position: absolute;
-      top: 0; left: 0; bottom: 0;
-      width: 0%;
-      background: linear-gradient(to right, #4caf50, #81c784);
-      border-radius: 5px;
-      transition: width 0.25s;
-    }
     #setExerciseInfo {
       font-size: 1.2em;
       font-weight: bold;
@@ -80,12 +87,15 @@
       margin: 20px 0;
       font-weight: normal;
     }
-    /* New style for time left display */
     #time-left {
       font-size: 1.5em;
       font-weight: bold;
       color: #333;
       margin: 10px 0;
+    }
+    /* Container for buttons to manage visibility easily */
+    #controls-container {
+      margin: 20px 0;
     }
   </style>
 </head>
@@ -94,7 +104,7 @@
   <div id="progressContainer">
     <div id="progressBar"></div>
   </div>
-  <!-- New div for time left display -->
+  
   <div id="time-left"></div>
   <div id="phaseLabel">Get Ready</div>
   <div id="exercise">--</div>
@@ -102,9 +112,14 @@
   <img id="exercise-img" src="" alt="" style="display:none">
   <div id="next"></div>
   <img id="next-img" src="" alt="" style="display:none;">
-  <button onclick="location.href='{{ url_for('index') }}'">Back</button>
-  <button id="startBtn" onclick="startWorkout()">Start</button>
-  <button id="pauseBtn" onclick="togglePause()" disabled>Pause</button>
+  
+  <div id="controls-container">
+    <button id="backBtn" onclick="confirmExit()">Back</button>
+    <button id="startBtn" onclick="startWorkout()">Start</button>
+    <button id="pauseBtn" onclick="pauseWorkout()" style="display:none;">Pause</button>
+    <button id="resumeBtn" onclick="resumeWorkout()" style="display:none;">Resume</button>
+  </div>
+
   <h2>Workout Plan</h2>
   <div id="workoutList">
     {% for ex in workout %}
@@ -113,6 +128,7 @@
   </div>
   <div id="setExerciseInfo"></div>
   <h1 id="usernameHeader">Workout Timer for {{ username }}</h1>
+
 <script>
   const workout = [
     {% for ex in workout %}
@@ -134,16 +150,16 @@
   let timer;
   let timeLeft = 0;
   let paused = false;
-  let workoutFinished = false; // Prevent double finish
+  let workoutFinished = false;
 
   const totalWorkoutTime = 7 + (numSets * workout.length * exDuration) + 
-                          (numSets * (workout.length - 1) * restDuration) + 
-                          ((numSets - 1) * setRest);
+                           (numSets * (workout.length - 1) * restDuration) + 
+                           ((numSets - 1) * setRest);
   let timeRemaining = totalWorkoutTime;
 
   const beepShort = new Audio("{{ url_for('static', filename='sounds/beep_short.mp3') }}");
   const beepLong = new Audio("{{ url_for('static', filename='sounds/beep_long.mp3') }}");
-  const finishSound = new Audio("{{ url_for('static', filename='sounds/finish.mp3') }}"); // NEW
+  const finishSound = new Audio("{{ url_for('static', filename='sounds/finish.mp3') }}");
 
   function playBeep(type) {
     if (type === "exercise") beepLong.play().catch(()=>{});
@@ -152,6 +168,58 @@
 
   function playFinishSound() {
     finishSound.play().catch(() => {});
+  }
+
+  // --- NEW: Button State Management ---
+  function updateButtons(state) {
+    const back = document.getElementById("backBtn");
+    const start = document.getElementById("startBtn");
+    const pause = document.getElementById("pauseBtn");
+    const resume = document.getElementById("resumeBtn");
+
+    // Hide all initially
+    back.style.display = "none";
+    start.style.display = "none";
+    pause.style.display = "none";
+    resume.style.display = "none";
+
+    if (state === "ready") {
+      back.style.display = "inline-block";
+      start.style.display = "inline-block";
+    } else if (state === "running") {
+      pause.style.display = "inline-block";
+    } else if (state === "paused") {
+      resume.style.display = "inline-block";
+      back.style.display = "inline-block";
+    } else if (state === "finished") {
+      back.style.display = "inline-block";
+    }
+  }
+
+  // --- NEW: Confirm Back Logic ---
+  function confirmExit() {
+    // If finished, just go back without pestering
+    if (workoutFinished) {
+      location.href = "{{ url_for('index') }}";
+      return;
+    }
+    // Otherwise ask for confirmation
+    if (confirm("Are you sure you want to exit? Your current workout progress will be lost.")) {
+      location.href = "{{ url_for('index') }}";
+    }
+  }
+
+  // --- NEW: Pause/Resume Split ---
+  function pauseWorkout() {
+    paused = true;
+    clearTimeout(timer);
+    updateButtons("paused");
+  }
+
+  function resumeWorkout() {
+    paused = false;
+    tick(); // Resume the loop
+    updateButtons("running");
   }
 
   function buildOverallBar() {
@@ -222,7 +290,7 @@
       } else if (phase === "exercise") {
         currentIndex++;
         if (currentIndex < workout.length) startRest();
-        else startExercise();
+        else startExercise(); // Will trigger set rest or finish
       } else if (phase === "rest") {
         startExercise();
       } else if (phase === "setrest") {
@@ -260,8 +328,8 @@
   }
 
   function startWorkout() {
-    document.getElementById("startBtn").disabled = true;
-    document.getElementById("pauseBtn").disabled = false;
+    updateButtons("running"); // Hide Back/Start, Show Pause
+    
     phase = "countdown";
     timeLeft = 7;
     updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
@@ -288,7 +356,7 @@
         playBeep("rest");
         tick();
       } else {
-        finishWorkout(); // NEW: Dedicated finish function
+        finishWorkout();
       }
       return;
     }
@@ -300,8 +368,8 @@
     document.getElementById("exercise-description").innerText = ex.description || "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
     const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
-    document.getElementById("next").innerText = nextEx
-        ? `Next: ${nextEx.name}`
+    document.getElementById("next").innerText = nextEx 
+        ? `Next: ${nextEx.name}` 
         : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
     showImage(ex.image, nextEx ? nextEx.image : null);
     highlightCurrent(currentIndex);
@@ -324,10 +392,10 @@
     tick();
   }
 
-  // NEW: Dedicated finish function
   function finishWorkout() {
     if (workoutFinished) return;
     workoutFinished = true;
+    updateButtons("finished"); // Show only Back button
 
     phase = "complete";
     updatePhaseDisplay("Workout Complete!", "complete-phase", "gray");
@@ -340,26 +408,9 @@
     highlightCurrent(-1);
     updateOverallProgress();
 
-    // Play finish sound
     playFinishSound();
-
-    // Trigger confetti
     createConfetti();
-
-    // Auto-save
     autoSaveWorkout();
-  }
-
-  function togglePause() {
-    paused = !paused;
-    const btn = document.getElementById("pauseBtn");
-    if (paused) {
-      btn.innerText = "Resume";
-      clearTimeout(timer);
-    } else {
-      btn.innerText = "Pause";
-      tick();
-    }
   }
 
   function formatTime(sec) {
@@ -405,7 +456,6 @@
       });
   }
 
-  // NEW: Confetti effect
   function createConfetti() {
     const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f3722c'];
     const confettiCount = 80;
@@ -422,12 +472,10 @@
       confetti.style.zIndex = '9999';
       confetti.style.animation = `fall ${3 + Math.random() * 2}s linear forwards`;
       document.body.appendChild(confetti);
-
       setTimeout(() => confetti.remove(), 5000);
     }
   }
 
-  // Add fall animation
   const style = document.createElement('style');
   style.textContent = `
     @keyframes fall {
@@ -447,6 +495,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     buildOverallBar();
     document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
+    updateButtons("ready"); // Initialize button state
   });
 </script>
 </body>
