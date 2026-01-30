@@ -1,1 +1,14 @@
+# Ignore Database and Backups
+data
 workout_log*.json
+
+# Python System Files
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Ignore Environment Secrets
+.env
+env/
+.DS_Store

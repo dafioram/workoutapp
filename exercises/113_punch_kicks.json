@@ -1,8 +1,8 @@
 {
 	"id": 113,
 	"name": "Punch and Kicks",
-	"muscle": "chest",
-	"body_part": "upper",
+	"muscle": "full",
+	"body_part": "full",
 	"body_weight": true,
 	"variants": "none",
 	"type": "cardio",

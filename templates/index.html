@@ -4,20 +4,20 @@
   <title>Workout Generator</title>
   <style>
     .exercise-list { display: flex; flex-wrap: wrap; gap: 20px; }
-    .exercise-card {
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 8px;
-      width: 180px;
-      text-align: center;
-      cursor: grab;
+    .exercise-card { 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      border-radius: 8px; 
+      width: 180px; 
+      text-align: center; 
+      cursor: grab; 
       background: #fafafa;
       position: relative;
       user-select: none;
     }
-    .exercise-card.dragging {
-      opacity: 0.5;
-      border: 2px dashed #666;
+    .exercise-card.dragging { 
+      opacity: 0.5; 
+      border: 2px dashed #666; 
     }
     .exercise-card img {
       max-width: 150px;
@@ -85,15 +85,15 @@
     <fieldset style="margin-top: 10px;">
       <legend><strong>Workout Type</strong></legend>
       <label>
-        <input type="radio" name="workout_type" value="any"
+        <input type="radio" name="workout_type" value="any" 
           {% if workout_type == 'any' %}checked{% endif %}> Any Exercises
       </label><br>
       <label>
-        <input type="radio" name="workout_type" value="core"
+        <input type="radio" name="workout_type" value="core" 
           {% if workout_type == 'core' %}checked{% endif %}> Core Only
       </label><br>
       <label>
-        <input type="radio" name="workout_type" value="cardio"
+        <input type="radio" name="workout_type" value="cardio" 
           {% if workout_type == 'cardio' %}checked{% endif %}> Cardio Only
       </label>
     </fieldset>
@@ -108,13 +108,15 @@
     {% if workout %}
       <h2>Your Workout</h2>
       <div class="exercise-list" id="sortable">
-        {# locked_ids stored in session as strings; normalize comparisons by converting ex.id to string #}
         {% set locked_ids = session.get('locked_ids', []) %}
         {% for ex in workout %}
-          {% set exid = (ex.id|string) %}
-          <div class="exercise-card {% if exid in locked_ids %}locked{% endif %}" draggable="true" data-id="{{ exid }}">
+          
+          {# FIX: Check if ID is locked as EITHER a Number OR a String #}
+          {% set is_locked = (ex.id in locked_ids) or ((ex.id|string) in locked_ids) %}
+          
+          <div class="exercise-card {% if is_locked %}locked{% endif %}" draggable="true" data-id="{{ ex.id }}">
             <label class="lock-area" title="Lock exercise">
-              <input type="checkbox" class="lock-input" {% if exid in locked_ids %}checked{% endif %}>
+              <input type="checkbox" class="lock-input" {% if is_locked %}checked{% endif %}>
               <span class="lock-icon">🔒</span>
             </label>
             <p>{{ ex.name }}</p>
@@ -125,7 +127,6 @@
         {% endfor %}
       </div>
 
-      <!-- Hidden inputs used to submit order and locked exercise IDs -->
       <input type="hidden" name="exercise_order" id="exercise_order">
       <input type="hidden" name="locked_ids" id="locked_ids">
 
@@ -133,7 +134,7 @@
     {% endif %}
   </form>
 
-  
+   
   <p><a href="{{ url_for('warm_up') }}">Warm Up</a></p>
   <p><a href="{{ url_for('exercises') }}">All Exercises</a></p>
   <p><a href="{{ url_for('analysis') }}">Analysis</a></p>

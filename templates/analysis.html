@@ -15,8 +15,13 @@
   <hr>
 
   <div>
-    <button onclick="setView('week')">Weekly</button>
-    <button onclick="setView('month')">Monthly</button>
+    <strong>View by: </strong>
+    <label>
+      <input type="radio" name="viewMode" value="week" onclick="setView('week')" checked> Weekly
+    </label>
+    <label>
+      <input type="radio" name="viewMode" value="month" onclick="setView('month')"> Monthly
+    </label>
   </div>
 
   <h2>Exercise vs Rest Over Time</h2>
