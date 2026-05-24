@@ -131,7 +131,9 @@
     {% endfor %}
   </div>
   <div id="setExerciseInfo"></div>
-  <h1 id="usernameHeader">Workout Timer for {{ username }}</h1>
+  <h1 id="usernameHeader">
+	Workout Timer {% if not disable_db_history %}for {{ username }}{% endif %}
+  </h1>
 
 <script>
   const workout = [
@@ -451,13 +453,20 @@
   }
 
   function autoSaveWorkout() {
-    fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "saved") {
-          document.getElementById("next").innerHTML += "<br><em>Workout saved!</em>";
-        }
-      });
+    {% if not disable_db_history %}
+      // Normal saving logic
+      fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "saved" || data.status === "success") {
+            document.getElementById("next").innerHTML += "<br><em>Workout saved!</em>";
+          }
+        })
+        .catch(err => console.error("Error saving workout:", err));
+    {% else %}
+      // Do nothing, or optionally show a stateless message
+      document.getElementById("next").innerHTML += "<br><em>Great job!</em>";
+    {% endif %}
   }
 
   function createConfetti() {

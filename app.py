@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, jsonify, redirect, u
 from werkzeug.middleware.proxy_fix import ProxyFix
 import random
 import database  # Uses the new DB logic
+import os # environ
 
 app = Flask(__name__)
 
@@ -9,7 +10,17 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
 
-app.secret_key = "supersecret"
+# Read the flag (defaults to False if not set)
+DISABLE_DB_HISTORY = os.environ.get("DISABLE_DB_HISTORY", "False").lower() in ("true", "1", "t")
+
+# Databse key
+SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "supersecret")
+app.config['SECRET_KEY'] = SECRET_KEY
+
+# Pass this flag to all HTML templates automatically
+@app.context_processor
+def inject_config():
+    return dict(disable_db_history=DISABLE_DB_HISTORY)
 
 # --- HELPER FUNCTIONS ---
 
@@ -56,6 +67,8 @@ def timer():
 
 @app.route("/save_current_workout", methods=["POST"])
 def save_current_workout():
+    if DISABLE_DB_HISTORY:
+        return jsonify({"status": "error", "message": "Saving disabled in this environment"}), 403
     workout = session.get("current_workout")
     if not workout:
         return jsonify({"status": "no workout"})
@@ -92,7 +105,7 @@ def exercises():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if "username" not in session:
+    if not DISABLE_DB_HISTORY and "username" not in session:
         session["username"] = "Bruno"
 
     workout_type = request.form.get("workout_type", session.get("workout_type", "any"))
@@ -225,15 +238,21 @@ def index():
             if "start" in request.form:
                 return redirect(url_for("timer"))
             elif "save" in request.form:
-                save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
+                if not DISABLE_DB_HISTORY:
+                    save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
+                    message = "Workout Saved!"
+                else:
+                    message = "Saving is currently disabled."
                 session.pop("current_workout", None)
-                message = "Workout Saved!"
                 workout = []
 
     total_time = "0m 0s"
     if workout:
         total_sec = calculate_total_time(len(workout), num_sets, ex_duration, rest_duration, set_rest)
         total_time = format_time(total_sec)
+
+    # Safely get users only if the DB is active
+    users_list = [] if DISABLE_DB_HISTORY else database.get_all_users()
 
     return render_template(
         "index.html",
@@ -245,14 +264,16 @@ def index():
         set_rest=set_rest,
         message=message,
         total_time=total_time,
-        username=session["username"],
-        existing_users=database.get_all_users(),
+        username=session.get("username", "Guest"), # Use .get() so it doesn't crash if empty
+        existing_users=users_list,                 # Pass the safe list here
         workout_type=session.get("workout_type", "any"),
         locked_ids=session.get("locked_ids", [])
     )
 
 @app.route("/history")
 def history():
+    if DISABLE_DB_HISTORY:
+        return redirect(url_for("index"))
     username = session.get("username", "Bruno")
     workouts = database.get_workouts_for_user(username)
     
@@ -272,6 +293,8 @@ def warm_up():
 
 @app.route('/analysis')
 def analysis():
+    if DISABLE_DB_HISTORY:
+        return redirect(url_for("index"))
     from datetime import datetime
     
     username = session.get("username", "Bruno")
