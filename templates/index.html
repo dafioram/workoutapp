@@ -56,9 +56,12 @@
     <p style="color: green;"><strong>{{ message }}</strong></p>
   {% endif %}
 
-  <p>Current user: {{ username }}</p>
+  {% if not disable_db_history %}
+    <p>Current user: {{ username }}</p>
+  {% endif %}
 
   <form id="workoutForm" method="POST">
+  {% if not disable_db_history %}
     <label for="username">Select User:</label>
     <select id="username" name="username" onchange="toggleNewUserInput()">
       <option value="">New User</option>
@@ -70,6 +73,7 @@
       <label for="new_username">New Username:</label>
       <input type="text" id="new_username" name="new_username" placeholder="Enter new username">
     </div><br>
+	{% endif %}
 
     <label>Number of exercises:</label>
     <input type="number" id="num_exercises" name="num_exercises" value="{{ num_exercises }}" min="1"><br>
@@ -105,7 +109,9 @@
 
     <button type="submit" name="generate" value="1">Generate / Redraw</button>
     {% if workout %}
-      <button type="submit" name="save" value="1">Save Workout</button>
+		{% if not disable_db_history %}
+			<button type="submit" name="save" value="1">Save Workout</button>
+		{% endif %}
       <button type="submit" name="start" value="1" style="margin-left:10px;">Start Timer</button>
     {% endif %}
 
@@ -141,15 +147,21 @@
    
   <p><a href="{{ url_for('warm_up') }}">Warm Up</a></p>
   <p><a href="{{ url_for('exercises') }}">All Exercises</a></p>
-  <p><a href="{{ url_for('analysis') }}">Analysis</a></p>
-  <p><a href="{{ url_for('history') }}">View Workout History</a></p>
+  {% if not disable_db_history %}
+	<p><a href="{{ url_for('analysis') }}">Analysis</a></p>
+	<p><a href="{{ url_for('history') }}">View Workout History</a></p>
+  {% endif %}
 
   <script>
-    function toggleNewUserInput() {
-      const select = document.getElementById("username");
-      const newUserDiv = document.getElementById("newUserInput");
-      newUserDiv.style.display = select.value === "" ? "block" : "none";
-    }
+	function toggleNewUserInput() {
+	  const select = document.getElementById("username");
+	  const newUserDiv = document.getElementById("newUserInput");
+	  
+	  // Only run this if the elements actually exist on the page
+	  if (select && newUserDiv) {
+		newUserDiv.style.display = select.value === "" ? "block" : "none";
+	  }
+	}
 
     // Write current order and locked ids into hidden inputs
     function writeHiddenState() {
