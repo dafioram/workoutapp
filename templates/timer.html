@@ -8,13 +8,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
+	html, body {
+	  height: 100%;
+	  overflow: Hidden;
+	}
+  
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
       text-align: center; 
       margin: 0; 
       padding: 15px 15px 100px 15px; 
       transition: background 0.5s; 
-      min-height: 100vh;
+      height: 100vh;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -497,7 +502,7 @@
         }
         
         // Smoothly autoscroll the list so the active item is always in the middle of the box
-        item.scrollIntoView({ behavior: "smooth", block: "center" });
+        item.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     });
   }
