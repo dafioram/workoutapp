@@ -6,116 +6,176 @@
   <meta name="theme-color" content="#4caf50">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 20px; transition: background 0.5s; }
-    #exercise { font-size: 2.5em; margin: 20px 0; }
-    #exercise-description { font-size: 1.2em; font-style: italic; color: #555; margin: 10px 0; }
-    #phaseLabel { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
-    #next { color: gray; margin: 10px 0; font-size: 1.2em; }
-    #exercise-img { height: 300px; width: auto; margin: 20px auto; display: block; }
-    #next-img { max-width: 150px; max-height: 150px; margin: 10px auto; display: block; opacity: 0.6; }
-    
-    /* Updated Button Styling */
-    button { 
-      padding: 15px 30px; 
-      margin: 10px; 
-      font-size: 1.2em; 
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      color: white;
+	html, body {
+	  height: 100%;
+	  overflow: Hidden;
+	}
+  
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      text-align: center; 
+      margin: 0; 
+      padding: 15px 15px 100px 15px; 
+      transition: background 0.5s; 
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     }
-    #backBtn { background-color: #6c757d; }
-    #startBtn { background-color: #28a745; }
-    #pauseBtn { background-color: #ffc107; color: black; }
-    #resumeBtn { background-color: #28a745; }
-
-    #workoutList { text-align: center; margin-top: 30px; }
-    #workoutList span { margin: 0 5px; }
-    .current { font-weight: bold; color: red; }
-    .exercise-phase { background: #d4edda; }
-    .rest-phase { background: #ffeeba; }
-    .setrest-phase { background: #d1ecf1; }
-    .complete-phase { background: #e2e3e5; }
+    
+    /* Top Progress Elements */
     #progressContainer { 
-      width: 90%; 
-      height: 50px; 
-      margin: 20px auto; 
-      background: #eee; 
-      border-radius: 5px; 
+      width: 100%; 
+      height: 44px; 
+      margin: 0 auto 10px auto; 
+      background: rgba(0,0,0,0.1); 
+      border-radius: 8px; 
       overflow: hidden; 
       position: relative; 
     }
     #progressBar { 
       height: 100%; 
       width: 0%; 
-      background: green; 
-      transition: width 0.25s; 
+      background: #28a745; 
+      transition: width 0.25s linear; 
       display: flex; 
       align-items: center; 
       justify-content: center; 
       color: white; 
       font-weight: bold; 
-      font-size: 1.5em; 
+      font-size: 1.2em; 
+      white-space: nowrap;
     }
     #overallContainer {
       display: flex;
-      width: 80%;
-      height: 20px;
-      margin: 20px auto;
-      border-radius: 5px;
+      width: 100%;
+      height: 8px;
+      margin: 5px auto 15px auto;
+      border-radius: 4px;
       overflow: hidden;
     }
-    .segment {
-      flex-grow: 1;
-      height: 100%;
-      opacity: 0.3;
-    }
+    .segment { flex-grow: 1; height: 100%; opacity: 0.3; }
     .segment.exercise { background: #4caf50; }
     .segment.rest { background: #ffc107; }
     .segment.setrest { background: #17a2b8; }
     .segment.done { opacity: 1; }
-    .segment.active {
-      opacity: 1;
-      outline: 2px solid black;
-    }
-    #setExerciseInfo {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #333;
-      text-align: center;
+    .segment.active { opacity: 1; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.5); }
+    
+    #time-left { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 15px; }
+
+    /* Middle Content */
+    #phaseLabel { font-size: clamp(1.2em, 5vw, 1.8em); font-weight: bold; margin: 0 0 5px 0; display: none; } /* Hidden to save space unless complete */
+    #exercise { font-size: clamp(2em, 8vw, 2.5em); margin: 10px 0; line-height: 1.1; }
+    #setExerciseInfo { font-size: 1.1em; font-weight: bold; color: #333; margin: 5px 0 10px 0; }
+    #exercise-description { font-size: clamp(1em, 3.5vw, 1.1em); font-style: italic; color: #555; margin: 0 10px 15px 10px; }
+    #exercise-img { width: 100%; max-width: 300px; height: auto; max-height: 25vh; margin: 0 auto; display: block; border-radius: 12px; object-fit: contain; }
+
+    /* The New Vertical Timeline (Replaces the inline text list) */
+    #workoutListWrapper {
+      flex-grow: 1;
+      overflow-y: auto;
       margin: 10px 0;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 15px 10px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      /* Keeps it contained so buttons stay pinned */
+      max-height: 35vh; 
     }
-    #usernameHeader {
-      font-size: 1.5em;
-      margin: 20px 0;
-      font-weight: normal;
+    
+    #workoutList { 
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      width: max-content;
+      margin: 0 auto;
+      padding-left: 20px; /* Room for arrows */
     }
-    #time-left {
-      font-size: 1.5em;
-      font-weight: bold;
-      color: #333;
-      margin: 10px 0;
+    
+    .ex-item {
+      color: #555;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
+      position: relative;
     }
-    /* Container for buttons to manage visibility easily */
+    .ex-item.completed { text-decoration: line-through; opacity: 0.4; }
+    .ex-item.active-exercise { color: #000; font-weight: bold; font-size: 1.25em; }
+    .ex-item.active-rest { color: #333; font-weight: bold; }
+    
+    .arrow-placeholder {
+      position: absolute;
+      left: -25px; /* Pulls the arrow out to the left of the text */
+      width: 20px;
+      text-align: right;
+    }
+    
+    /* Fixed Bottom Controls */
     #controls-container {
-      margin: 20px 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px);
+      padding: 15px;
+      box-sizing: border-box;
+      display: flex;
+      gap: 10px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 100;
     }
+    button { 
+      flex: 1; 
+      padding: 18px; 
+      font-size: 1.2em; 
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      touch-action: manipulation; 
+    }
+    #backBtn { background-color: #6c757d; flex: 0.4; } 
+    #startBtn { background-color: #28a745; }
+    #pauseBtn { background-color: #ffc107; color: black; }
+    #resumeBtn { background-color: #28a745; }
+
+    /* Phase Backgrounds */
+    .exercise-phase { background: #d4edda; }
+    .rest-phase { background: #e2f0d9; } /* Softer green/yellow for rest */
+    .setrest-phase { background: #d1ecf1; }
+    .complete-phase { background: #e2e3e5; }
   </style>
 </head>
 <body>
+  
   <div id="overallContainer"></div>
   <div id="progressContainer">
     <div id="progressBar"></div>
   </div>
-  
   <div id="time-left"></div>
+
   <div id="phaseLabel">Get Ready</div>
   <div id="exercise">--</div>
+  <div id="setExerciseInfo"></div>
   <div id="exercise-description"></div>
   <img id="exercise-img" src="" alt="" style="display:none">
-  <div id="next"></div>
-  <img id="next-img" src="" alt="" style="display:none;">
+  
+  <!-- Integrated List & "Next" indicator -->
+  <div id="workoutListWrapper">
+    <div id="workoutList">
+      {% for ex in workout %}
+        <div class="ex-item" data-index="{{ loop.index0 }}" data-name="{{ ex.name }}">
+          <span class="arrow-placeholder"></span>{{ ex.name }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
   
   <div id="controls-container">
     <button id="backBtn" onclick="confirmExit()">Back</button>
@@ -123,17 +183,6 @@
     <button id="pauseBtn" onclick="pauseWorkout()" style="display:none;">Pause</button>
     <button id="resumeBtn" onclick="resumeWorkout()" style="display:none;">Resume</button>
   </div>
-
-  <h2>Workout Plan</h2>
-  <div id="workoutList">
-    {% for ex in workout %}
-      <span data-index="{{ loop.index0 }}">{{ ex.name }}</span>{% if not loop.last %}| {% endif %}
-    {% endfor %}
-  </div>
-  <div id="setExerciseInfo"></div>
-  <h1 id="usernameHeader">
-	Workout Timer {% if not disable_db_history %}for {{ username }}{% endif %}
-  </h1>
 
 <script>
   const workout = [
@@ -171,51 +220,42 @@
     if (type === "exercise") beepLong.play().catch(()=>{});
     else beepShort.play().catch(()=>{});
   }
+  function playFinishSound() { finishSound.play().catch(() => {}); }
 
-  function playFinishSound() {
-    finishSound.play().catch(() => {});
-  }
-
-  // --- NEW: Button State Management ---
   function updateButtons(state) {
     const back = document.getElementById("backBtn");
     const start = document.getElementById("startBtn");
     const pause = document.getElementById("pauseBtn");
     const resume = document.getElementById("resumeBtn");
 
-    // Hide all initially
     back.style.display = "none";
     start.style.display = "none";
     pause.style.display = "none";
     resume.style.display = "none";
 
     if (state === "ready") {
-      back.style.display = "inline-block";
-      start.style.display = "inline-block";
+      back.style.display = "block";
+      start.style.display = "block";
     } else if (state === "running") {
-      pause.style.display = "inline-block";
+      pause.style.display = "block";
     } else if (state === "paused") {
-      resume.style.display = "inline-block";
-      back.style.display = "inline-block";
+      resume.style.display = "block";
+      back.style.display = "block";
     } else if (state === "finished") {
-      back.style.display = "inline-block";
+      back.style.display = "block";
     }
   }
 
-  // --- NEW: Confirm Back Logic ---
   function confirmExit() {
-    // If finished, just go back without pestering
     if (workoutFinished) {
       location.href = "{{ url_for('index') }}";
       return;
     }
-    // Otherwise ask for confirmation
     if (confirm("Are you sure you want to exit? Your current workout progress will be lost.")) {
       location.href = "{{ url_for('index') }}";
     }
   }
 
-  // --- NEW: Pause/Resume Split ---
   function pauseWorkout() {
     paused = true;
     clearTimeout(timer);
@@ -224,7 +264,7 @@
 
   function resumeWorkout() {
     paused = false;
-    tick(); // Resume the loop
+    tick();
     updateButtons("running");
   }
 
@@ -296,7 +336,7 @@
       } else if (phase === "exercise") {
         currentIndex++;
         if (currentIndex < workout.length) startRest();
-        else startExercise(); // Will trigger set rest or finish
+        else startExercise(); 
       } else if (phase === "rest") {
         startExercise();
       } else if (phase === "setrest") {
@@ -311,6 +351,7 @@
                 (phase === "setrest") ? setRest :
                 (phase === "countdown") ? 7 : 1;
     let percent = ((total - timeLeft) / total) * 100;
+    
     document.getElementById("progressBar").style.width = percent + "%";
     document.getElementById("progressBar").innerText = 
       (phase === "exercise") ? `EXERCISE ${formatTime(timeLeft)}` : 
@@ -327,23 +368,24 @@
     timer = setTimeout(tick, 1000);
   }
 
-  function updatePhaseDisplay(label, phaseClass, barColor) {
-    document.getElementById("phaseLabel").innerText = label;
+  function updatePhaseDisplay(phaseClass, barColor) {
     document.body.className = phaseClass;
     document.getElementById("progressBar").style.background = barColor;
   }
 
   function startWorkout() {
-    updateButtons("running"); // Hide Back/Start, Show Pause
-    
+    updateButtons("running"); 
     phase = "countdown";
     timeLeft = 7;
-    updatePhaseDisplay("Get Ready!", "rest-phase", "gray");
+    updatePhaseDisplay("rest-phase", "gray");
     document.getElementById("exercise").innerText = "Starting soon...";
     document.getElementById("setExerciseInfo").innerText = "";
     document.getElementById("exercise-description").innerText = "";
     document.getElementById("progressBar").innerText = formatTime(timeLeft);
     document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
+    
+    // Point yellow arrow at first exercise during countdown
+    highlightCurrent(0, 'countdown');
     tick();
   }
 
@@ -352,13 +394,14 @@
       if (currentSet < numSets) {
         phase = "setrest";
         timeLeft = setRest;
-        updatePhaseDisplay("Rest Between Sets", "setrest-phase", "blue");
+        updatePhaseDisplay("setrest-phase", "#17a2b8");
         document.getElementById("exercise").innerText = `Set Rest`;
         document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
-        document.getElementById("next").innerText = `Set ${currentSet+1} starts soon`;
-        document.getElementById("exercise-description").innerText = "";
-        showImage(null, null);
-        highlightCurrent(-1);
+        document.getElementById("exercise-description").innerText = `Next up: ${workout[0].name}`;
+        showImage(null);
+        
+        // Point yellow arrow at the first exercise for the upcoming set
+        highlightCurrent(0, 'setrest'); 
         playBeep("rest");
         tick();
       } else {
@@ -366,19 +409,20 @@
       }
       return;
     }
+    
     phase = "exercise";
     const ex = workout[currentIndex];
     timeLeft = exDuration;
-    updatePhaseDisplay("", "exercise-phase", "green");
+    updatePhaseDisplay("exercise-phase", "#28a745");
+    
     document.getElementById("exercise").innerText = ex.alternate_name ? `${ex.name} (${ex.alternate_name})` : ex.name;
+    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} | Ex ${currentIndex+1}/${workout.length}`;
     document.getElementById("exercise-description").innerText = ex.description || "";
-    document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets} Ex ${currentIndex+1}/${workout.length}`;
-    const nextEx = (currentIndex < workout.length - 1) ? workout[currentIndex+1] : null;
-    document.getElementById("next").innerText = nextEx 
-        ? `Next: ${nextEx.name}` 
-        : (currentSet < numSets ? "Next: Rest Between Sets" : "Last exercise!");
-    showImage(ex.image, nextEx ? nextEx.image : null);
-    highlightCurrent(currentIndex);
+    
+    showImage(ex.image);
+    
+    // Point red arrow at current exercise
+    highlightCurrent(currentIndex, 'exercise');
     playBeep("exercise");
     tick();
   }
@@ -386,14 +430,17 @@
   function startRest() {
     phase = "rest";
     timeLeft = restDuration;
-    updatePhaseDisplay("", "rest-phase", "orange");
+    updatePhaseDisplay("rest-phase", "#ffc107");
+    
     document.getElementById("exercise").innerText = `Rest`;
-    document.getElementById("exercise-description").innerText = "";
     document.getElementById("setExerciseInfo").innerText = `Set ${currentSet}/${numSets}`;
     const nextEx = workout[currentIndex];
-    document.getElementById("next").innerText = `Next: ${nextEx.name}`;
-    showImage(null, nextEx.image);
-    highlightCurrent(-1);
+    document.getElementById("exercise-description").innerText = `Take a breather. Up next: ${nextEx.name}`;
+    
+    showImage(nextEx.image);
+    
+    // Point yellow arrow at the UPCOMING exercise
+    highlightCurrent(currentIndex, 'rest');
     playBeep("rest");
     tick();
   }
@@ -401,17 +448,22 @@
   function finishWorkout() {
     if (workoutFinished) return;
     workoutFinished = true;
-    updateButtons("finished"); // Show only Back button
+    updateButtons("finished"); 
 
     phase = "complete";
-    updatePhaseDisplay("Workout Complete!", "complete-phase", "gray");
-    document.getElementById("exercise").innerHTML = "<span style='font-size: 2em;'>Well Done!</span>";
+    document.getElementById("phaseLabel").style.display = "block";
+    document.getElementById("phaseLabel").innerText = "Workout Complete!";
+    updatePhaseDisplay("complete-phase", "gray");
+    
+    document.getElementById("exercise").innerHTML = "<span style='font-size: 1.5em;'>Well Done!</span>";
     document.getElementById("setExerciseInfo").innerText = `All ${numSets} sets completed!`;
-    document.getElementById("progressBar").innerHTML = "<div style='font-size: 1.8em; animation: pulse 1.5s infinite;'>FINISHED</div>";
-    document.getElementById("next").innerHTML = "<strong>Great job! Take a rest.</strong>";
+    document.getElementById("exercise-description").innerHTML = "<strong>Great job! Take a rest.</strong>";
+    document.getElementById("progressBar").innerHTML = "<div style='font-size: 1.2em; animation: pulse 1.5s infinite;'>FINISHED</div>";
     document.getElementById("time-left").innerText = "Workout Complete!";
-    showImage(null, null);
-    highlightCurrent(-1);
+    document.getElementById("workoutListWrapper").style.display = "none"; // Hide list on finish
+    
+    showImage(null);
+    highlightCurrent(-1, 'complete');
     updateOverallProgress();
 
     playFinishSound();
@@ -425,17 +477,39 @@
     return `${m}:${s.toString().padStart(2,"0")}`;
   }
 
-  function highlightCurrent(index) {
-    const items = document.querySelectorAll("#workoutList span");
-    items.forEach((span, i) => {
-      if (i === index) span.classList.add("current");
-      else span.classList.remove("current");
+  // REWRITTEN: Handles arrows and list styling dynamically based on phase
+  function highlightCurrent(index, phaseType) {
+    const items = document.querySelectorAll("#workoutList .ex-item");
+    
+    items.forEach((item, i) => {
+      // Reset classes and arrow
+      item.className = "ex-item"; 
+      const arrowSpan = item.querySelector('.arrow-placeholder');
+      arrowSpan.innerHTML = ""; 
+
+      // Fade out completed items
+      if ((phaseType === 'exercise' && i < index) || (phaseType !== 'exercise' && i < index)) {
+          item.classList.add("completed");
+      }
+
+      if (i === index) {
+        if (phaseType === 'exercise') {
+          item.classList.add("active-exercise");
+          arrowSpan.innerHTML = "<span style='color: #dc3545; font-size: 1.2em;'>➤</span>";
+        } else if (phaseType === 'rest' || phaseType === 'setrest' || phaseType === 'countdown') {
+          item.classList.add("active-rest");
+          arrowSpan.innerHTML = "<span style='color: #ffc107; font-size: 1.2em;'>➤</span>";
+        }
+        
+        // Smoothly autoscroll the list so the active item is always in the middle of the box
+        item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     });
   }
 
-  function showImage(currImg, nextImg) {
+  // Combined function to handle images cleanly
+  function showImage(currImg) {
     const exImg = document.getElementById("exercise-img");
-    const nextExImg = document.getElementById("next-img");
     if (currImg) {
       exImg.src = currImg;
       exImg.style.display = "block";
@@ -443,29 +517,20 @@
     } else {
       exImg.style.display = "none";
     }
-    if (nextImg) {
-      nextExImg.src = nextImg;
-      nextExImg.style.display = "block";
-      nextExImg.onerror = () => nextExImg.style.display = "none";
-    } else {
-      nextExImg.style.display = "none";
-    }
   }
 
   function autoSaveWorkout() {
     {% if not disable_db_history %}
-      // Normal saving logic
       fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
         .then(res => res.json())
         .then(data => {
           if (data.status === "saved" || data.status === "success") {
-            document.getElementById("next").innerHTML += "<br><em>Workout saved!</em>";
+            document.getElementById("exercise-description").innerHTML += "<br><em>Workout saved!</em>";
           }
         })
         .catch(err => console.error("Error saving workout:", err));
     {% else %}
-      // Do nothing, or optionally show a stateless message
-      document.getElementById("next").innerHTML += "<br><em>Great job!</em>";
+      document.getElementById("exercise-description").innerHTML += "<br><em>Great job!</em>";
     {% endif %}
   }
 
@@ -491,15 +556,10 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    @keyframes fall {
-      to {
-        transform: translateY(100vh) rotate(720deg);
-        opacity: 0;
-      }
-    }
+    @keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
+      50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
   `;
@@ -508,7 +568,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     buildOverallBar();
     document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
-    updateButtons("ready"); // Initialize button state
+    updateButtons("ready");
+    
+    // Setup initial list state without highlighting anything yet
+    highlightCurrent(-1, 'ready'); 
   });
 </script>
 </body>
