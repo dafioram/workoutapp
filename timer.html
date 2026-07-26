@@ -2,60 +2,33 @@
 <html>
 <head>
   <title>Workout Timer</title>
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta charset="UTF-8">
+  <link rel="manifest" href="static/manifest.json">
   <meta name="theme-color" content="#4caf50">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="static/icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <script src="database.js"></script>
+  <script src="app.js"></script>
   <style>
-	html, body {
-	  height: 100%;
-	  overflow: Hidden;
-	}
-  
+    html, body { height: 100%; overflow: hidden; }
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      text-align: center; 
-      margin: 0; 
-      padding: 15px 15px 100px 15px; 
-      transition: background 0.5s; 
-      height: 100vh;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
+      text-align: center; margin: 0; padding: 15px 15px 100px 15px; 
+      transition: background 0.5s; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column;
     }
     
-    /* Top Progress Elements */
     #progressContainer { 
-      width: 100%; 
-      height: 44px; 
-      margin: 0 auto 10px auto; 
-      background: rgba(0,0,0,0.1); 
-      border-radius: 8px; 
-      overflow: hidden; 
-      position: relative; 
+      width: 100%; height: 44px; margin: 0 auto 10px auto; 
+      background: rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; position: relative; 
     }
     #progressBar { 
-      height: 100%; 
-      width: 0%; 
-      background: #28a745; 
-      transition: width 0.25s linear; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      color: white; 
-      font-weight: bold; 
-      font-size: 1.2em; 
-      white-space: nowrap;
+      height: 100%; width: 0%; background: #28a745; transition: width 0.25s linear; 
+      display: flex; align-items: center; justify-content: center; color: white; 
+      font-weight: bold; font-size: 1.2em; white-space: nowrap;
     }
-    #overallContainer {
-      display: flex;
-      width: 100%;
-      height: 8px;
-      margin: 5px auto 15px auto;
-      border-radius: 4px;
-      overflow: hidden;
-    }
+    #overallContainer { display: flex; width: 100%; height: 8px; margin: 5px auto 15px auto; border-radius: 4px; overflow: hidden; }
     .segment { flex-grow: 1; height: 100%; opacity: 0.3; }
     .segment.exercise { background: #4caf50; }
     .segment.rest { background: #ffc107; }
@@ -64,90 +37,36 @@
     .segment.active { opacity: 1; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.5); }
     
     #time-left { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 15px; }
-
-    /* Middle Content */
-    #phaseLabel { font-size: clamp(1.2em, 5vw, 1.8em); font-weight: bold; margin: 0 0 5px 0; display: none; } /* Hidden to save space unless complete */
+    #phaseLabel { font-size: clamp(1.2em, 5vw, 1.8em); font-weight: bold; margin: 0 0 5px 0; display: none; }
     #exercise { font-size: clamp(2em, 8vw, 2.5em); margin: 10px 0; line-height: 1.1; }
     #setExerciseInfo { font-size: 1.1em; font-weight: bold; color: #333; margin: 5px 0 10px 0; }
     #exercise-description { font-size: clamp(1em, 3.5vw, 1.1em); font-style: italic; color: #555; margin: 0 10px 15px 10px; }
     #exercise-img { width: 100%; max-width: 300px; height: auto; max-height: 25vh; margin: 0 auto; display: block; border-radius: 12px; object-fit: contain; }
 
-    /* The New Vertical Timeline (Replaces the inline text list) */
     #workoutListWrapper {
-      flex-grow: 1;
-      overflow-y: auto;
-      margin: 10px 0;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 12px;
-      padding: 15px 10px;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-      /* Keeps it contained so buttons stay pinned */
-      max-height: 35vh; 
+      flex-grow: 1; overflow-y: auto; margin: 10px 0; background: rgba(255, 255, 255, 0.3);
+      border-radius: 12px; padding: 15px 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); max-height: 35vh; 
     }
-    
-    #workoutList { 
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      text-align: left;
-      width: max-content;
-      margin: 0 auto;
-      padding-left: 20px; /* Room for arrows */
-    }
-    
-    .ex-item {
-      color: #555;
-      font-size: 1.1em;
-      display: flex;
-      align-items: center;
-      transition: all 0.3s ease;
-      position: relative;
-    }
+    #workoutList { display: flex; flex-direction: column; gap: 12px; text-align: left; width: max-content; margin: 0 auto; padding-left: 20px; }
+    .ex-item { color: #555; font-size: 1.1em; display: flex; align-items: center; transition: all 0.3s ease; position: relative; }
     .ex-item.completed { text-decoration: line-through; opacity: 0.4; }
     .ex-item.active-exercise { color: #000; font-weight: bold; font-size: 1.25em; }
     .ex-item.active-rest { color: #333; font-weight: bold; }
+    .arrow-placeholder { position: absolute; left: -25px; width: 20px; text-align: right; }
     
-    .arrow-placeholder {
-      position: absolute;
-      left: -25px; /* Pulls the arrow out to the left of the text */
-      width: 20px;
-      text-align: right;
-    }
-    
-    /* Fixed Bottom Controls */
     #controls-container {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(5px);
-      padding: 15px;
-      box-sizing: border-box;
-      display: flex;
-      gap: 10px;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-      z-index: 100;
+      position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px); padding: 15px; box-sizing: border-box; display: flex; gap: 10px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100;
     }
-    button { 
-      flex: 1; 
-      padding: 18px; 
-      font-size: 1.2em; 
-      font-weight: bold;
-      cursor: pointer;
-      border: none;
-      border-radius: 12px;
-      color: white;
-      touch-action: manipulation; 
-    }
+    button { flex: 1; padding: 18px; font-size: 1.2em; font-weight: bold; cursor: pointer; border: none; border-radius: 12px; color: white; touch-action: manipulation; }
     #backBtn { background-color: #6c757d; flex: 0.4; } 
     #startBtn { background-color: #28a745; }
     #pauseBtn { background-color: #ffc107; color: black; }
     #resumeBtn { background-color: #28a745; }
 
-    /* Phase Backgrounds */
     .exercise-phase { background: #d4edda; }
-    .rest-phase { background: #e2f0d9; } /* Softer green/yellow for rest */
+    .rest-phase { background: #e2f0d9; } 
     .setrest-phase { background: #d1ecf1; }
     .complete-phase { background: #e2e3e5; }
   </style>
@@ -155,9 +74,7 @@
 <body>
   
   <div id="overallContainer"></div>
-  <div id="progressContainer">
-    <div id="progressBar"></div>
-  </div>
+  <div id="progressContainer"><div id="progressBar"></div></div>
   <div id="time-left"></div>
 
   <div id="phaseLabel">Get Ready</div>
@@ -166,14 +83,9 @@
   <div id="exercise-description"></div>
   <img id="exercise-img" src="" alt="" style="display:none">
   
-  <!-- Integrated List & "Next" indicator -->
   <div id="workoutListWrapper">
     <div id="workoutList">
-      {% for ex in workout %}
-        <div class="ex-item" data-index="{{ loop.index0 }}" data-name="{{ ex.name }}">
-          <span class="arrow-placeholder"></span>{{ ex.name }}
-        </div>
-      {% endfor %}
+      <!-- Generated by JavaScript below -->
     </div>
   </div>
   
@@ -185,20 +97,24 @@
   </div>
 
 <script>
-  const workout = [
-    {% for ex in workout %}
-      {
-        name: "{{ ex.name }}",
-        image: {{ url_for('static', filename=ex.image)|tojson }},
-        description: "{{ ex.description|default('') }}",
-        alternate_name: "{{ ex.alternate_name|default('') }}"
-      }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ];
-  const numSets = {{ num_sets }};
-  const exDuration = {{ ex_duration }};
-  const restDuration = {{ rest_duration }};
-  const setRest = {{ set_rest }};
+  // Pull variables from sessionStorage (set by index.html)
+  const numSets = AppLogic.Session.get("num_sets", 3);
+  const exDuration = AppLogic.Session.get("ex_duration", 40);
+  const restDuration = AppLogic.Session.get("rest_duration", 20);
+  const setRest = AppLogic.Session.get("set_rest", 60);
+  const workout = AppLogic.Session.get("current_workout", []);
+
+  // Build the visual list dynamically
+  const listContainer = document.getElementById("workoutList");
+  workout.forEach((ex, idx) => {
+      const div = document.createElement("div");
+      div.className = "ex-item";
+      div.setAttribute("data-index", idx);
+      div.setAttribute("data-name", ex.name);
+      div.innerHTML = `<span class="arrow-placeholder"></span>${ex.name}`;
+      listContainer.appendChild(div);
+  });
+
   let currentSet = 1;
   let currentIndex = 0;
   let phase = "ready";
@@ -207,14 +123,16 @@
   let paused = false;
   let workoutFinished = false;
 
-  const totalWorkoutTime = 7 + (numSets * workout.length * exDuration) + 
+  const totalWorkoutTime = AppLogic.WORKOUT_START_DELAY + 
+						   (numSets * workout.length * exDuration) + 
                            (numSets * (workout.length - 1) * restDuration) + 
                            ((numSets - 1) * setRest);
   let timeRemaining = totalWorkoutTime;
 
-  const beepShort = new Audio("{{ url_for('static', filename='sounds/beep_short.mp3') }}");
-  const beepLong = new Audio("{{ url_for('static', filename='sounds/beep_long.mp3') }}");
-  const finishSound = new Audio("{{ url_for('static', filename='sounds/finish.mp3') }}");
+  // Changed to static file paths
+  const beepShort = new Audio("static/sounds/beep_short.mp3");
+  const beepLong = new Audio("static/sounds/beep_long.mp3");
+  const finishSound = new Audio("static/sounds/finish.mp3");
 
   function playBeep(type) {
     if (type === "exercise") beepLong.play().catch(()=>{});
@@ -248,11 +166,11 @@
 
   function confirmExit() {
     if (workoutFinished) {
-      location.href = "{{ url_for('index') }}";
+      location.href = "index.html";
       return;
     }
     if (confirm("Are you sure you want to exit? Your current workout progress will be lost.")) {
-      location.href = "{{ url_for('index') }}";
+      location.href = "index.html";
     }
   }
 
@@ -384,7 +302,6 @@
     document.getElementById("progressBar").innerText = formatTime(timeLeft);
     document.getElementById("time-left").innerText = `Time Left: ${formatTime(timeRemaining)}`;
     
-    // Point yellow arrow at first exercise during countdown
     highlightCurrent(0, 'countdown');
     tick();
   }
@@ -400,7 +317,6 @@
         document.getElementById("exercise-description").innerText = `Next up: ${workout[0].name}`;
         showImage(null);
         
-        // Point yellow arrow at the first exercise for the upcoming set
         highlightCurrent(0, 'setrest'); 
         playBeep("rest");
         tick();
@@ -421,7 +337,6 @@
     
     showImage(ex.image);
     
-    // Point red arrow at current exercise
     highlightCurrent(currentIndex, 'exercise');
     playBeep("exercise");
     tick();
@@ -439,7 +354,6 @@
     
     showImage(nextEx.image);
     
-    // Point yellow arrow at the UPCOMING exercise
     highlightCurrent(currentIndex, 'rest');
     playBeep("rest");
     tick();
@@ -460,7 +374,7 @@
     document.getElementById("exercise-description").innerHTML = "<strong>Great job! Take a rest.</strong>";
     document.getElementById("progressBar").innerHTML = "<div style='font-size: 1.2em; animation: pulse 1.5s infinite;'>FINISHED</div>";
     document.getElementById("time-left").innerText = "Workout Complete!";
-    document.getElementById("workoutListWrapper").style.display = "none"; // Hide list on finish
+    document.getElementById("workoutListWrapper").style.display = "none"; 
     
     showImage(null);
     highlightCurrent(-1, 'complete');
@@ -477,17 +391,14 @@
     return `${m}:${s.toString().padStart(2,"0")}`;
   }
 
-  // REWRITTEN: Handles arrows and list styling dynamically based on phase
   function highlightCurrent(index, phaseType) {
     const items = document.querySelectorAll("#workoutList .ex-item");
     
     items.forEach((item, i) => {
-      // Reset classes and arrow
       item.className = "ex-item"; 
       const arrowSpan = item.querySelector('.arrow-placeholder');
       arrowSpan.innerHTML = ""; 
 
-      // Fade out completed items
       if ((phaseType === 'exercise' && i < index) || (phaseType !== 'exercise' && i < index)) {
           item.classList.add("completed");
       }
@@ -501,13 +412,11 @@
           arrowSpan.innerHTML = "<span style='color: #ffc107; font-size: 1.2em;'>➤</span>";
         }
         
-        // Smoothly autoscroll the list so the active item is always in the middle of the box
         item.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     });
   }
 
-  // Combined function to handle images cleanly
   function showImage(currImg) {
     const exImg = document.getElementById("exercise-img");
     if (currImg) {
@@ -519,15 +428,27 @@
     }
   }
 
-  function autoSaveWorkout() {
-      fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "saved" || data.status === "success") {
-            document.getElementById("exercise-description").innerHTML += "<br><em>Workout saved!</em>";
+  async function autoSaveWorkout() {
+      try {
+          // Changed to client-side IndexedDB save
+          if (window.DB && window.DB.insertWorkout) {
+              const currentUsername = AppLogic.Session.get("username", "Guest");
+              await window.DB.insertWorkout(
+                  currentUsername, 
+                  workout, 
+                  numSets, 
+                  exDuration, 
+                  restDuration, 
+                  setRest
+              );
+              document.getElementById("exercise-description").innerHTML += "<br><em>Workout saved to device history!</em>";
+          } else {
+              console.warn("IndexedDB (window.DB) logic not found, skipping save.");
           }
-        })
-        .catch(err => console.error("Error saving workout:", err));
+      } catch(err) {
+          console.error("Error saving workout:", err);
+          document.getElementById("exercise-description").innerHTML += "<br><em style='color:red;'>Failed to save workout.</em>";
+      }
   }
 
   function createConfetti() {
@@ -565,8 +486,6 @@
     buildOverallBar();
     document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
     updateButtons("ready");
-    
-    // Setup initial list state without highlighting anything yet
     highlightCurrent(-1, 'ready'); 
   });
 </script>

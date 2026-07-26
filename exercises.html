@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <title>All Exercises</title>
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#4caf50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="static/manifest.json">
+  <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    :root {
+      --bg: #f4f7f6;
+      --card-bg: #ffffff;
+      --primary: #4caf50;
+      --text: #333333;
+      --border: #e0e0e0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 15px;
+      line-height: 1.5;
+    }
+    h1 { text-align: center; color: var(--text); }
+    h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-top: 25px; }
+    
+    .category-container {
+      background: var(--card-bg);
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    ul { padding-left: 20px; margin: 10px 0; }
+    li { margin-bottom: 12px; }
+    em { color: #666; font-size: 0.95rem; }
+    
+    .back-link {
+      display: block;
+      text-align: center;
+      margin: 30px auto;
+      padding: 12px;
+      color: white;
+      background: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      max-width: 200px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>All Exercises</h1>
+
+  <div id="exercisesContainer">
+    <p style="text-align: center;" id="loadingMsg">Loading exercises...</p>
+  </div>
+
+  <a href="index.html" class="back-link">Back to Generator</a>
+
+  <script src="database.js"></script>
+  <script>
+    // Fallback master list if not defined in database.js
+    const DEFAULT_EXERCISES = [
+      { id: 1, name: "Push Ups", muscle: "Chest & Arms", type: "core", description: "Keep back straight and lower chest to floor." },
+      { id: 2, name: "Squats", muscle: "Legs", type: "any", description: "Go below parallel, push through heels." },
+      { id: 3, name: "Plank", muscle: "Core", type: "core", description: "Hold core tight, do not let hips sag." },
+      { id: 4, name: "Jumping Jacks", muscle: "Cardio", type: "cardio", description: "Full body aerobic movement." },
+      { id: 5, name: "High Knees", muscle: "Cardio", type: "cardio", description: "Drive knees up rhythmically toward chest." },
+      { id: 6, name: "Crunches", muscle: "Core", type: "core", description: "Contract abs and lift shoulder blades off ground." }
+    ];
+
+    async function loadExercisesPage() {
+      let exercises = DEFAULT_EXERCISES;
+
+      // Try fetching from IndexedDB or global window.DB if present
+      try {
+        if (window.DB && window.DB.getAllExercises) {
+          const dbEx = await window.DB.getAllExercises();
+          if (dbEx && dbEx.length > 0) exercises = dbEx;
+        }
+      } catch (err) {
+        console.warn("Could not load from DB, using fallback list.", err);
+      }
+
+      const container = document.getElementById("exercisesContainer");
+      container.innerHTML = "";
+
+      if (!exercises || exercises.length === 0) {
+        container.innerHTML = "<p style='text-align: center;'>No exercises found.</p>";
+        return;
+      }
+
+      // Group exercises by muscle category
+      const grouped = {};
+      exercises.forEach(ex => {
+        const muscle = ex.muscle || ex.type || "General";
+        const capitalizedMuscle = muscle.charAt(0).toUpperCase() + muscle.slice(1);
+        if (!grouped[capitalizedMuscle]) {
+          grouped[capitalizedMuscle] = [];
+        }
+        grouped[capitalizedMuscle].push(ex);
+      });
+
+      // Render grouped lists inside card containers
+      for (const [muscle, items] of Object.entries(grouped)) {
+        const section = document.createElement("div");
+        section.className = "category-container";
+        
+        let html = `<h2>${muscle}</h2><ul>`;
+        items.forEach(ex => {
+          html += `
+            <li>
+              <strong>${ex.name}</strong><br>
+              ${ex.description ? `<em>${ex.description}</em>` : ''}
+            </li>
+          `;
+        });
+        html += `</ul>`;
+        section.innerHTML = html;
+        container.appendChild(section);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadExercisesPage);
+  </script>
+</body>
+</html>
