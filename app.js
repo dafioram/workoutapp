@@ -181,6 +181,15 @@ async function getAnalysisData(username) {
 
 const WORKOUT_START_DELAY = 7;
 
+window.AppReady = (async () => {
+    try {
+        await DB.initDB();
+    } catch (err) {
+        console.error("Failed to initialize database:", err);
+        throw err;
+    }
+})();
+
 window.AppLogic = {
     Session,
     WORKOUT_START_DELAY,

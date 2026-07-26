@@ -482,12 +482,15 @@
   `;
   document.head.appendChild(style);
 
-  document.addEventListener("DOMContentLoaded", () => {
-    buildOverallBar();
-    document.getElementById("time-left").innerText = `Total Time: ${formatTime(totalWorkoutTime)}`;
-    updateButtons("ready");
-    highlightCurrent(-1, 'ready'); 
-  });
+  document.addEventListener("DOMContentLoaded", async () => {
+		await window.AppReady;
+
+		buildOverallBar();
+		document.getElementById("time-left").innerText =
+			`Total Time: ${formatTime(totalWorkoutTime)}`;
+		updateButtons("ready");
+		highlightCurrent(-1, "ready");
+	});
 </script>
 </body>
 </html>

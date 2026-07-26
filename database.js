@@ -1,7 +1,13 @@
 // database.js
 
 const DB_NAME = "WorkoutAppDB";
-const DB_VERSION = 1;
+const DB_VERSION = 3;
+
+const EXERCISE_SOURCE =
+    "https://dafioram.github.io/exercise-data/static/exercises.json";
+	
+const EXERCISE_META_SOURCE =
+    "https://dafioram.github.io/exercise-data/static/version.json";
 
 const dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -23,24 +29,46 @@ const dbPromise = new Promise((resolve, reject) => {
             wkStore.createIndex("username", "username", { unique: false });
             wkStore.createIndex("timestamp", "timestamp", { unique: false });
         }
+		
+		// 3. Store: Settings
+		if (!db.objectStoreNames.contains("settings")) {
+			db.createObjectStore("settings", { keyPath: "key" });
+		}
     };
 
     request.onsuccess = (event) => resolve(event.target.result);
     request.onerror = (event) => reject(event.target.error);
 });
 
+async function getRemoteExerciseVersion() {
+    const response = await fetch(EXERCISE_META_SOURCE, {
+        cache: "no-store"
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to load exercise version");
+    }
+
+    const data = await response.json();
+    return data.exercisesVersion;
+}
+
 // --- SEEDING LOGIC ---
 async function initDB() {
     const db = await dbPromise;
 
-    const tx = db.transaction("exercises");
     const count = await new Promise(resolve => {
+        const tx = db.transaction("exercises");
         const req = tx.objectStore("exercises").count();
         req.onsuccess = () => resolve(req.result);
     });
 
-    if (count === 0) {
+    const remoteVersion = await getRemoteExerciseVersion();
+    const localVersion = await getSetting("exerciseVersion");
+
+    if (count === 0 || remoteVersion !== localVersion) {
         await reloadExercises();
+        await setSetting("exerciseVersion", remoteVersion);
     }
 }
 
@@ -68,35 +96,41 @@ async function getAllExercises(workoutType = "any") {
 async function reloadExercises() {
     const db = await dbPromise;
 
+    // Load data first (before opening IndexedDB transaction)
+    const response = await fetch(EXERCISE_SOURCE);
+
+    if (!response.ok) {
+        throw new Error("Failed to load exercises.json");
+    }
+
+    const exercises = await response.json();
+
+    // Clear existing exercises
     await new Promise((resolve, reject) => {
         const tx = db.transaction("exercises", "readwrite");
-        tx.objectStore("exercises").clear();
+        const store = tx.objectStore("exercises");
+
+        store.clear();
 
         tx.oncomplete = resolve;
-        tx.onerror = reject;
+        tx.onerror = () => reject(tx.error);
     });
 
-    const tx = db.transaction("exercises", "readwrite");
-    const store = tx.objectStore("exercises");
+    // Insert new exercises
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction("exercises", "readwrite");
+        const store = tx.objectStore("exercises");
 
-	const exercises = window.EXERCISES;
+        for (const ex of exercises) {
+            store.put({
+                ...ex,
+                active: ex.active !== false ? 1 : 0,
+                ab_workout: ex.ab_workout ? 1 : 0
+            });
+        }
 
-	if (!Array.isArray(exercises)) {
-		throw new Error(
-			"Exercises have not been loaded. Make sure static/exercises.js is included before database.js."
-		);
-	}
-
-	for (const ex of exercises) {
-    store.put({
-        ...ex,
-        active: ex.active !== false ? 1 : 0,
-        ab_workout: ex.ab_workout ? 1 : 0
-    });
-	}
-
-    return new Promise(resolve => {
         tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
     });
 }
 
@@ -137,6 +171,38 @@ async function getAllUsers() {
             const users = new Set(request.result.map(w => w.username));
             resolve(Array.from(users).sort());
         };
+    });
+}
+
+async function getSetting(key) {
+    const db = await dbPromise;
+
+    return new Promise((resolve) => {
+        const tx = db.transaction("settings", "readonly");
+        const store = tx.objectStore("settings");
+        const request = store.get(key);
+
+        request.onsuccess = () => {
+            resolve(request.result ? request.result.value : null);
+        };
+    });
+}
+
+
+async function setSetting(key, value) {
+    const db = await dbPromise;
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("settings", "readwrite");
+        const store = tx.objectStore("settings");
+
+        store.put({
+            key,
+            value
+        });
+
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
     });
 }
 
@@ -190,5 +256,7 @@ window.DB = {
     getExerciseMap,
     getWorkoutsForUser,
     getAllUsers,
-    insertWorkout
+    insertWorkout,
+    getSetting,
+    setSetting
 };

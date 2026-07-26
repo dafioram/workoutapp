@@ -21,7 +21,7 @@
 <script src="app.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-	    await DB.initDB();
+		await window.AppReady
 		
         const username = "Bruno";
         document.getElementById("usernameDisplay").innerText = username;

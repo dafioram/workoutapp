@@ -195,18 +195,8 @@
   <h1>Workout Generator</h1>
 
   <div id="toast"></div>
-  <!-- <p style="text-align: center;">Current user: <strong id="currentUserDisplay">Guest</strong></p>
 
   <div class="card-container">
-    <label for="username">Select User:</label>
-    <select id="username" name="username" onchange="toggleNewUserInput()">
-      <option value="">New User / Guest</option>
-    </select>
-    
-    <div id="newUserInput">
-      <label for="new_username">New Username:</label>
-      <input type="text" id="new_username" placeholder="Enter new username">
-    </div> -->
 	
 	<p style="text-align:center;">
 		Exercises loaded:
@@ -277,7 +267,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
-  <script src="static/exercises.js"></script>
   <script src="database.js"></script>
   <script src="app.js"></script>
 
@@ -530,8 +519,8 @@
 	}
 
 	document.addEventListener("DOMContentLoaded", async () => {
-		await DB.initDB();
-
+		await window.AppReady;
+		
 		AppLogic.Session.set("username", "Bruno");
 
 		await loadExercises();

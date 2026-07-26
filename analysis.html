@@ -41,14 +41,13 @@
   <h2>Number of Workouts</h2>
   <canvas id="workoutCountChart"></canvas>
 
-<script src="static/exercises.js"></script>
 <script src="database.js"></script>
 <script src="app.js"></script>
 <script>
   let currentView = "week";
   
   // These will hold our fetched data
-  let trendLabels, trendExercise, trendRest, weekly, monthly, weeklyWorkoutCounts, monthlyWorkoutCounts;
+  let trendLabels, trendExercise, trendRest, weekly, monthly;
   
   // Chart instances
   let trendChart, totalChart, muscleChart, workoutCountChart;
@@ -84,7 +83,8 @@
 
   // --- INITIALIZATION ---
   document.addEventListener("DOMContentLoaded", async () => {
-    await DB.initDB();
+	await window.AppReady;
+	
     const username = "Bruno";
     
     // Fetch aggregated data from our new JS logic

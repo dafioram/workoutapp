@@ -67,70 +67,65 @@
   <a href="index.html" class="back-link">Back to Generator</a>
 
   <script src="database.js"></script>
+  <script src="app.js"></script>
   <script>
-    // Fallback master list if not defined in database.js
-    const DEFAULT_EXERCISES = [
-      { id: 1, name: "Push Ups", muscle: "Chest & Arms", type: "core", description: "Keep back straight and lower chest to floor." },
-      { id: 2, name: "Squats", muscle: "Legs", type: "any", description: "Go below parallel, push through heels." },
-      { id: 3, name: "Plank", muscle: "Core", type: "core", description: "Hold core tight, do not let hips sag." },
-      { id: 4, name: "Jumping Jacks", muscle: "Cardio", type: "cardio", description: "Full body aerobic movement." },
-      { id: 5, name: "High Knees", muscle: "Cardio", type: "cardio", description: "Drive knees up rhythmically toward chest." },
-      { id: 6, name: "Crunches", muscle: "Core", type: "core", description: "Contract abs and lift shoulder blades off ground." }
-    ];
 
-    async function loadExercisesPage() {
-      let exercises = DEFAULT_EXERCISES;
+async function loadExercisesPage() {
+    const container = document.getElementById("exercisesContainer");
 
-      // Try fetching from IndexedDB or global window.DB if present
-      try {
-        if (window.DB && window.DB.getAllExercises) {
-          const dbEx = await window.DB.getAllExercises();
-          if (dbEx && dbEx.length > 0) exercises = dbEx;
+    try {
+        await window.AppReady;
+
+        const exercises = await window.DB.getAllExercises("any");
+
+        container.innerHTML = "";
+
+        if (!exercises.length) {
+            container.innerHTML = "<p style='text-align:center;'>No exercises found.</p>";
+            return;
         }
-      } catch (err) {
-        console.warn("Could not load from DB, using fallback list.", err);
-      }
 
-      const container = document.getElementById("exercisesContainer");
-      container.innerHTML = "";
+        // Group by muscle
+        const grouped = {};
 
-      if (!exercises || exercises.length === 0) {
-        container.innerHTML = "<p style='text-align: center;'>No exercises found.</p>";
-        return;
-      }
+        for (const ex of exercises) {
+            const muscle = ex.muscle || "General";
 
-      // Group exercises by muscle category
-      const grouped = {};
-      exercises.forEach(ex => {
-        const muscle = ex.muscle || ex.type || "General";
-        const capitalizedMuscle = muscle.charAt(0).toUpperCase() + muscle.slice(1);
-        if (!grouped[capitalizedMuscle]) {
-          grouped[capitalizedMuscle] = [];
+            if (!grouped[muscle]) {
+                grouped[muscle] = [];
+            }
+
+            grouped[muscle].push(ex);
         }
-        grouped[capitalizedMuscle].push(ex);
-      });
 
-      // Render grouped lists inside card containers
-      for (const [muscle, items] of Object.entries(grouped)) {
-        const section = document.createElement("div");
-        section.className = "category-container";
-        
-        let html = `<h2>${muscle}</h2><ul>`;
-        items.forEach(ex => {
-          html += `
-            <li>
-              <strong>${ex.name}</strong><br>
-              ${ex.description ? `<em>${ex.description}</em>` : ''}
-            </li>
-          `;
-        });
-        html += `</ul>`;
-        section.innerHTML = html;
-        container.appendChild(section);
-      }
+        for (const muscle of Object.keys(grouped).sort()) {
+            const section = document.createElement("div");
+            section.className = "category-container";
+
+            let html = `<h2>${muscle}</h2><ul>`;
+
+            for (const ex of grouped[muscle]) {
+                html += `
+                    <li>
+                        <strong>${ex.name}</strong><br>
+                        ${ex.description ? `<em>${ex.description}</em>` : ""}
+                    </li>
+                `;
+            }
+
+            html += "</ul>";
+
+            section.innerHTML = html;
+            container.appendChild(section);
+        }
+    } catch (err) {
+        console.error("Failed to load exercises:", err);
+        container.innerHTML =
+            "<p style='text-align:center;color:red;'>Failed to load exercises.</p>";
     }
+}
 
-    document.addEventListener("DOMContentLoaded", loadExercisesPage);
-  </script>
+document.addEventListener("DOMContentLoaded", loadExercisesPage);
+</script>
 </body>
 </html>
