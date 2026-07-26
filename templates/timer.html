@@ -520,7 +520,6 @@
   }
 
   function autoSaveWorkout() {
-    {% if not disable_db_history %}
       fetch("{{ url_for('save_current_workout') }}", { method: "POST" })
         .then(res => res.json())
         .then(data => {
@@ -529,9 +528,6 @@
           }
         })
         .catch(err => console.error("Error saving workout:", err));
-    {% else %}
-      document.getElementById("exercise-description").innerHTML += "<br><em>Great job!</em>";
-    {% endif %}
   }
 
   function createConfetti() {

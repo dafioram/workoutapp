@@ -37,7 +37,6 @@
       margin-bottom: 20px;
     }
 
-    /* Chunky, touch-friendly inputs */
     label { display: block; margin-top: 15px; font-weight: 600; font-size: 0.95rem; }
     input[type="number"], input[type="text"], select {
       width: 100%;
@@ -46,7 +45,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       box-sizing: border-box;
-      font-size: 16px; /* Prevents iOS auto-zoom */
+      font-size: 16px;
       background: var(--bg);
     }
     
@@ -58,7 +57,6 @@
     fieldset label { margin-top: 5px; font-weight: normal; display: flex; align-items: center; gap: 8px;}
     fieldset input[type="radio"] { transform: scale(1.2); }
 
-    /* Thumb-friendly buttons */
     button {
       background: var(--primary);
       color: white;
@@ -71,6 +69,11 @@
       margin-top: 15px;
       cursor: pointer;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background 0.3s ease;
+    }
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
     .button-group {
       display: flex;
@@ -79,7 +82,6 @@
       margin-top: 20px;
     }
     
-    /* Responsive Grid for Exercises */
     .exercise-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -96,7 +98,7 @@
       position: relative;
       user-select: none;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      touch-action: none; /* Required for polyfill */
+      touch-action: none;
     }
     .exercise-card.dragging { 
       opacity: 0.5; 
@@ -130,7 +132,7 @@
     }
     .locked { background-color: #e8f5e9; border-color: #81c784; }
     .lock-icon { pointer-events: none; font-size: 14px; }
-    .lock-input { display: none; } /* Hide the actual checkbox, use the icon */
+    .lock-input { display: none; }
 
     .footer-links {
       text-align: center;
@@ -153,16 +155,15 @@
 <body>
   <h1>Workout Generator</h1>
 
-  {% if message %}
-    <p style="color: #4caf50; text-align: center;"><strong>{{ message }}</strong></p>
-  {% endif %}
+  <div id="statusMessageContainer">
+    {% if message %}
+      <p style="color: #4caf50; text-align: center; font-weight: bold;">{{ message }}</p>
+    {% endif %}
+  </div>
 
-  {% if not disable_db_history %}
-    <p style="text-align: center;">Current user: <strong>{{ username }}</strong></p>
-  {% endif %}
+  <p style="text-align: center;">Current user: <strong>{{ username }}</strong></p>
 
   <form id="workoutForm" method="POST">
-  {% if not disable_db_history %}
     <label for="username">Select User:</label>
     <select id="username" name="username" onchange="toggleNewUserInput()">
       <option value="">New User</option>
@@ -170,25 +171,25 @@
         <option value="{{ user }}" {% if user == username %}selected{% endif %}>{{ user }}</option>
       {% endfor %}
     </select>
+    
     <div id="newUserInput">
       <label for="new_username">New Username:</label>
       <input type="text" id="new_username" name="new_username" placeholder="Enter new username">
     </div>
-    {% endif %}
 
-    <label>Number of exercises:</label>
+    <label for="num_exercises">Number of exercises:</label>
     <input type="number" id="num_exercises" name="num_exercises" value="{{ num_exercises }}" min="1">
 
-    <label>Number of sets:</label>
+    <label for="num_sets">Number of sets:</label>
     <input type="number" id="num_sets" name="num_sets" value="{{ num_sets }}" min="1">
 
-    <label>Exercise duration (seconds):</label>
+    <label for="ex_duration">Exercise duration (seconds):</label>
     <input type="number" id="ex_duration" name="ex_duration" value="{{ ex_duration }}" min="1">
 
-    <label>Rest duration between exercises (seconds):</label>
+    <label for="rest_duration">Rest duration between exercises (seconds):</label>
     <input type="number" id="rest_duration" name="rest_duration" value="{{ rest_duration }}" min="0">
 
-    <label>Rest between sets (minutes):</label>
+    <label for="set_rest">Rest between sets (minutes):</label>
     <input type="number" id="set_rest" name="set_rest" value="{{ set_rest/60 }}" min="0" step="0.1">
 
     <fieldset style="margin-top: 20px;">
@@ -210,9 +211,8 @@
     <div class="button-group">
       <button type="submit" name="generate" value="1" style="background: #2196F3;">Generate / Redraw</button>
       {% if workout %}
-        {% if not disable_db_history %}
-            <button type="submit" name="save" value="1" style="background: #ff9800;">Save Workout</button>
-        {% endif %}
+        <!-- Changed type to "button" so it doesn't trigger a form refresh, added an ID -->
+        <button type="button" id="saveWorkoutBtn" style="background: #ff9800;">Save Workout</button>
         <button type="submit" name="start" value="1">Start Timer</button>
       {% endif %}
     </div>
@@ -225,7 +225,6 @@
         {% set locked_ids = session.get('locked_ids', []) %}
         {% for ex in workout %}
           
-          {# FIX: Check if ID is locked as EITHER a Number OR a String #}
           {% set is_locked = (ex.id in locked_ids) or ((ex.id|string) in locked_ids) %}
           
           <div class="exercise-card {% if is_locked %}locked{% endif %}" draggable="true" data-id="{{ ex.id }}">
@@ -253,28 +252,19 @@
   <div class="footer-links">
     <a href="{{ url_for('warm_up') }}">Warm Up</a>
     <a href="{{ url_for('exercises') }}">All Exercises</a>
-    {% if not disable_db_history %}
-      <a href="{{ url_for('analysis') }}">Analysis</a>
-      <a href="{{ url_for('history') }}">View Workout History</a>
-    {% endif %}
+    <a href="{{ url_for('analysis') }}">Analysis</a>
+    <a href="{{ url_for('history') }}">View Workout History</a>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
 
   <script>
-    // Initialize the touch polyfill. User must hold for 150ms to start dragging, 
-    // this prevents accidental drags when they just want to scroll the page.
-    MobileDragDrop.polyfill({
-      holdToDrag: 150
-    });
-
-    // Handle touch scrolling bug on iOS
+    MobileDragDrop.polyfill({ holdToDrag: 150 });
     window.addEventListener('touchmove', function() {}, {passive: false});
 
     function toggleNewUserInput() {
       const select = document.getElementById("username");
       const newUserDiv = document.getElementById("newUserInput");
-      
       if (select && newUserDiv) {
         newUserDiv.style.display = select.value === "" ? "block" : "none";
       }
@@ -315,7 +305,6 @@
         if (!target || target === dragged) return;
         const rect = target.getBoundingClientRect();
         
-        // Better hit detection for grid layouts (X and Y axis)
         const mouseX = e.clientX;
         const mouseY = e.clientY;
         const centerX = rect.left + rect.width / 2;
@@ -351,6 +340,40 @@
 
       sortableEl.addEventListener("mouseup", () => setTimeout(writeHiddenState, 0));
       sortableEl.addEventListener("touchend", () => setTimeout(writeHiddenState, 0));
+      
+      // Handle the new asynchronous save
+      const saveBtn = document.getElementById("saveWorkoutBtn");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", async () => {
+          // Ensure latest order is captured before submitting
+          writeHiddenState();
+          
+          saveBtn.textContent = "Saving...";
+          saveBtn.disabled = true;
+          
+          const formData = new FormData(document.getElementById("workoutForm"));
+          
+          try {
+            const response = await fetch("{{ url_for('save_current_workout') }}", {
+              method: "POST",
+              body: formData
+            });
+            const data = await response.json();
+            
+            if (data.status === "saved") {
+              saveBtn.textContent = "Workout Saved!";
+              saveBtn.style.background = "#4caf50";
+              
+              const msgContainer = document.getElementById("statusMessageContainer");
+              msgContainer.innerHTML = '<p style="color: #4caf50; text-align: center; font-weight: bold;">Workout Saved!</p>';
+            }
+          } catch (error) {
+            console.error("Save failed", error);
+            saveBtn.textContent = "Error Saving";
+            saveBtn.disabled = false;
+          }
+        });
+      }
     });
 
     const form = document.getElementById("workoutForm");

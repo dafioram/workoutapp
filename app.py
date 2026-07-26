@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, session, jsonify, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 import random
-import database  # Uses the new DB logic
-import os # environ
+import database
+import os
 
 app = Flask(__name__)
 
@@ -10,17 +10,9 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
 
-# Read the flag (defaults to False if not set)
-DISABLE_DB_HISTORY = os.environ.get("DISABLE_DB_HISTORY", "False").lower() in ("true", "1", "t")
-
-# Databse key
+# Database key
 SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 app.config['SECRET_KEY'] = SECRET_KEY
-
-# Pass this flag to all HTML templates automatically
-@app.context_processor
-def inject_config():
-    return dict(disable_db_history=DISABLE_DB_HISTORY)
 
 # --- HELPER FUNCTIONS ---
 
@@ -67,11 +59,24 @@ def timer():
 
 @app.route("/save_current_workout", methods=["POST"])
 def save_current_workout():
-    if DISABLE_DB_HISTORY:
-        return jsonify({"status": "error", "message": "Saving disabled in this environment"}), 403
     workout = session.get("current_workout")
     if not workout:
         return jsonify({"status": "no workout"})
+    
+    # Update order if user dragged-and-dropped before clicking save
+    exercise_order = request.form.get("exercise_order", "")
+    if exercise_order:
+        order_ids = [int(s) for s in exercise_order.split(",") if s.strip()]
+        current_map = {int(ex["id"]): ex for ex in workout}
+        reordered = []
+        for oid in order_ids:
+            if oid in current_map:
+                reordered.append(current_map[oid])
+        for ex in workout:
+            if int(ex["id"]) not in order_ids:
+                reordered.append(ex)
+        workout = reordered
+        session["current_workout"] = workout # Save new order to session
     
     num_sets = session.get("num_sets", 1)
     ex_duration = session.get("ex_duration", 30)
@@ -88,12 +93,12 @@ def save_current_workout():
         set_rest=set_rest
     )
     
-    session.pop("current_workout", None)
+    # We DO NOT pop the session here anymore! 
+    # This lets the user click "Start Timer" after clicking Save.
     return jsonify({"status": "saved"})
 
 @app.route('/exercises')
 def exercises():
-    # Load from DB instead of JSON
     all_ex = database.get_all_exercises()
     
     grouped = {}
@@ -105,13 +110,12 @@ def exercises():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if not DISABLE_DB_HISTORY and "username" not in session:
+    if "username" not in session:
         session["username"] = "Bruno"
 
     workout_type = request.form.get("workout_type", session.get("workout_type", "any"))
     session["workout_type"] = workout_type
     
-    # LOAD EXERCISES FROM DB
     available_exercises = database.get_all_exercises(workout_type=workout_type)
 
     # Inputs / Session Management
@@ -153,8 +157,6 @@ def index():
 
             old_workout = session.get("current_workout", [])
             
-            # --- FIX: READ ORDER FROM FORM BEFORE LOCKING ---
-            # This ensures that if you dragged an item to slot 2, it stays in slot 2.
             exercise_order = request.form.get("exercise_order", "")
             if exercise_order:
                 order_ids = [int(s) for s in exercise_order.split(",") if s.strip()]
@@ -164,15 +166,13 @@ def index():
                 for oid in order_ids:
                     if oid in current_map:
                         reordered.append(current_map[oid])
-                # 2. Add any that might be missing (just in case)
+                # 2. Add any that might be missing
                 for ex in old_workout:
                     if int(ex["id"]) not in order_ids:
                         reordered.append(ex)
                 old_workout = reordered
-            # ------------------------------------------------
 
             old_by_id = {int(ex["id"]): ex for ex in old_workout}
-
             combined_map = {int(e["id"]): e for e in available_exercises}
             combined_map.update(old_by_id)
 
@@ -238,11 +238,8 @@ def index():
             if "start" in request.form:
                 return redirect(url_for("timer"))
             elif "save" in request.form:
-                if not DISABLE_DB_HISTORY:
-                    save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
-                    message = "Workout Saved!"
-                else:
-                    message = "Saving is currently disabled."
+                save_workout(workout, num_sets, ex_duration, rest_duration, set_rest)
+                message = "Workout Saved!"
                 session.pop("current_workout", None)
                 workout = []
 
@@ -251,8 +248,7 @@ def index():
         total_sec = calculate_total_time(len(workout), num_sets, ex_duration, rest_duration, set_rest)
         total_time = format_time(total_sec)
 
-    # Safely get users only if the DB is active
-    users_list = [] if DISABLE_DB_HISTORY else database.get_all_users()
+    users_list = database.get_all_users()
 
     return render_template(
         "index.html",
@@ -263,17 +259,14 @@ def index():
         rest_duration=rest_duration,
         set_rest=set_rest,
         message=message,
-        total_time=total_time,
-        username=session.get("username", "Guest"), # Use .get() so it doesn't crash if empty
-        existing_users=users_list,                 # Pass the safe list here
+        username=session.get("username", "Bruno"),
+        existing_users=users_list,
         workout_type=session.get("workout_type", "any"),
         locked_ids=session.get("locked_ids", [])
     )
 
 @app.route("/history")
 def history():
-    if DISABLE_DB_HISTORY:
-        return redirect(url_for("index"))
     username = session.get("username", "Bruno")
     workouts = database.get_workouts_for_user(username)
     
@@ -293,8 +286,6 @@ def warm_up():
 
 @app.route('/analysis')
 def analysis():
-    if DISABLE_DB_HISTORY:
-        return redirect(url_for("index"))
     from datetime import datetime
     
     username = session.get("username", "Bruno")
@@ -383,7 +374,6 @@ def analysis():
     )
 
 if __name__ == "__main__":
-    import os
     database.init_db()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
