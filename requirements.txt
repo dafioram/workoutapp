@@ -1,3 +1,0 @@
-flask
-datetime
-gunicorn #for docker

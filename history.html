@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout History</title>
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#4caf50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+</head>
+<body>
+  <h1>Workout History for <span id="usernameDisplay"></span></h1>
+  
+  <div id="historyContainer">
+      <p>Loading history...</p>
+  </div>
+
+  <p><a href="index.html">Back to Generator</a></p>
+
+<script src="database.js"></script>
+<script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+		await window.AppReady
+		
+        const username = "Bruno";
+        document.getElementById("usernameDisplay").innerText = username;
+        
+        const container = document.getElementById("historyContainer");
+        const workouts = await window.DB.getWorkoutsForUser(username);
+
+		console.log("History workouts:", workouts);
+
+        if (!workouts || workouts.length === 0) {
+            container.innerHTML = `<p>No workouts saved yet for ${username}.</p>`;
+            return;
+        }
+
+        let html = "<ul>";
+        workouts.forEach(w => {
+            const totalSecs = AppLogic.calculateTotalTime(
+                w.exercises.length, w.num_sets, w.exercise_duration, w.rest_duration, w.set_rest
+            );
+            
+            html += `
+                <li>
+                    <strong>${w.timestamp.replace('T', ' ')}</strong><br>
+                    Sets: ${w.num_sets},
+                    Exercise Duration: ${w.exercise_duration}s,
+                    Rest between exercises: ${w.rest_duration}s,
+                    Rest between sets: ${(w.set_rest / 60).toFixed(1)} min<br>
+                    <em>Total Time: ${AppLogic.formatTime(totalSecs)}</em>
+                    <ul>
+                        ${w.exercises.map(ex => `<li>${ex.name} (ID: ${ex.id})</li>`).join('')}
+                    </ul>
+                </li>
+            `;
+        });
+        html += "</ul>";
+        container.innerHTML = html;
+    });
+  </script>
+</body>
+</html>

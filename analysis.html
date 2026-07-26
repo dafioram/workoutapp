@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+  <title>Workout Analysis</title>
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="theme-color" content="#4caf50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+</head>
+<body>
+  <h1>Workout Analysis</h1>
+  <nav>
+    <a href="index.html">Generator</a> |
+    <a href="history.html">History</a> |
+    <a href="exercises.html">All Exercises</a> |
+    <a href="analysis.html">Analysis</a>
+  </nav>
+  <hr>
+
+  <div>
+    <strong>View by: </strong>
+    <label>
+      <input type="radio" name="viewMode" value="week" onclick="setView('week')" checked> Weekly
+    </label>
+    <label>
+      <input type="radio" name="viewMode" value="month" onclick="setView('month')"> Monthly
+    </label>
+  </div>
+
+  <h2>Exercise vs Rest Over Time</h2>
+  <canvas id="trendChart"></canvas>
+
+  <h2>Total Workout Time</h2>
+  <canvas id="totalChart"></canvas>
+
+  <h2>Muscle Group Distribution</h2>
+  <canvas id="muscleChart"></canvas>
+
+  <h2>Number of Workouts</h2>
+  <canvas id="workoutCountChart"></canvas>
+
+<script src="database.js"></script>
+<script src="app.js"></script>
+<script>
+  let currentView = "week";
+  
+  // These will hold our fetched data
+  let trendLabels, trendExercise, trendRest, weekly, monthly;
+  
+  // Chart instances
+  let trendChart, totalChart, muscleChart, workoutCountChart;
+
+  function toMinutes(val) { return (val / 60).toFixed(1); }
+  function toMinutesArray(arr) { return arr.map(v => toMinutes(v)); }
+
+  function buildTotals(data) {
+    const labels = Object.keys(data).sort();
+    const exercise = labels.map(l => toMinutes(data[l].exercise));
+    const rest = labels.map(l => toMinutes(data[l].rest));
+    return { labels, exercise, rest };
+  }
+
+  function buildMuscles(data) {
+    const labels = Object.keys(data).sort();
+    const muscleSet = new Set();
+    labels.forEach(l => Object.keys(data[l].muscles).forEach(m => muscleSet.add(m)));
+    const muscles = Array.from(muscleSet);
+    const datasets = muscles.map((m, i) => ({
+      label: m,
+      data: labels.map(l => data[l].muscles[m] ? toMinutes(data[l].muscles[m]) : 0),
+      backgroundColor: `hsl(${i * 50 % 360},70%,60%)`
+    }));
+    return { labels, datasets };
+  }
+
+  function buildWorkoutCounts(data) {
+    const labels = Object.keys(data).sort();
+    const counts = labels.map(l => data[l].workout_count || 0); // Pulled from our new aggregated logic
+    return { labels, counts };
+  }
+
+  // --- INITIALIZATION ---
+  document.addEventListener("DOMContentLoaded", async () => {
+	await window.AppReady;
+	
+    if (typeof Chart === "undefined") {
+        console.warn("Chart.js unavailable (offline)");
+
+        document.querySelectorAll("canvas").forEach(canvas => {
+            canvas.style.display = "none";
+        });
+
+        document.body.insertAdjacentHTML(
+            "beforeend",
+            "<p style='text-align:center'>Charts unavailable offline.</p>"
+        );
+
+        return;
+    }
+	
+    const username = "Bruno";
+    
+    // Fetch aggregated data from our new JS logic
+    const data = await window.AppLogic.getAnalysisData(username);
+    
+    trendLabels = data.trendLabels;
+    trendExercise = data.trendExercise;
+    trendRest = data.trendRest;
+    weekly = data.weekly;
+    monthly = data.monthly;
+
+    // Initialize Charts
+    trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [
+          { label: "Exercise Time (min)", data: toMinutesArray(trendExercise), borderColor: "green", fill: false },
+          { label: "Rest Time (min)", data: toMinutesArray(trendRest), borderColor: "red", fill: false }
+        ]
+      },
+      options: { scales: { y: { title: { display: true, text: "Minutes" } } } }
+    });
+
+    let totals = buildTotals(weekly);
+    totalChart = new Chart(document.getElementById('totalChart'), {
+      type: 'bar',
+      data: {
+        labels: totals.labels,
+        datasets: [
+          { label: "Exercise (min)", data: totals.exercise, backgroundColor: "green" },
+          { label: "Rest (min)", data: totals.rest, backgroundColor: "red" }
+        ]
+      },
+      options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: "Minutes" } } } }
+    });
+
+    let muscles = buildMuscles(weekly);
+    muscleChart = new Chart(document.getElementById('muscleChart'), {
+      type: 'bar',
+      data: { labels: muscles.labels, datasets: muscles.datasets },
+      options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: "Minutes" } } }, plugins: { title: { display: true, text: "Muscle Group Time (min)" } } }
+    });
+
+    let workoutCounts = buildWorkoutCounts(weekly); // Using 'weekly' aggregation which includes workout_count
+    workoutCountChart = new Chart(document.getElementById('workoutCountChart'), {
+      type: 'line',
+      data: {
+        labels: workoutCounts.labels,
+        datasets: [{ label: "Number of Workouts", data: workoutCounts.counts, backgroundColor: "rgba(75, 192, 192, 0.5)", borderColor: "rgba(75, 192, 192, 1)", borderWidth: 1 }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Workouts' } }, x: { title: { display: true, text: 'Week' } } },
+        plugins: { title: { display: true, text: 'Number of Workouts per Week' } }
+      }
+    });
+  });
+
+  // --- TOGGLE VIEW ---
+  window.setView = function(view) {
+    currentView = view;
+    const data = (view === "week") ? weekly : monthly;
+
+    let totals = buildTotals(data);
+    totalChart.data.labels = totals.labels;
+    totalChart.data.datasets[0].data = totals.exercise;
+    totalChart.data.datasets[1].data = totals.rest;
+    totalChart.update();
+
+    let muscles = buildMuscles(data);
+    muscleChart.data.labels = muscles.labels;
+    muscleChart.data.datasets = muscles.datasets;
+    muscleChart.update();
+
+    let workoutCounts = buildWorkoutCounts(data);
+    workoutCountChart.data.labels = workoutCounts.labels;
+    workoutCountChart.data.datasets[0].data = workoutCounts.counts;
+    workoutCountChart.options.scales.x.title.text = view === 'week' ? 'Week' : 'Month';
+    workoutCountChart.options.plugins.title.text = 'Number of Workouts per ' + (view === 'week' ? 'Week' : 'Month');
+    workoutCountChart.update();
+  }
+</script>
+</body>
+</html>
