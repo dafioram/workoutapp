@@ -50,6 +50,11 @@ async function getRemoteExerciseVersion() {
     }
 
     const data = await response.json();
+
+    if (!data.exercisesVersion) {
+        throw new Error("Invalid exercise version response");
+    }
+
     return data.exercisesVersion;
 }
 
@@ -60,16 +65,72 @@ async function initDB() {
     const count = await new Promise(resolve => {
         const tx = db.transaction("exercises");
         const req = tx.objectStore("exercises").count();
+
         req.onsuccess = () => resolve(req.result);
     });
 
-    const remoteVersion = await getRemoteExerciseVersion();
-    const localVersion = await getSetting("exerciseVersion");
+    // First install requires download
+	if (count === 0) {
+		try {
+			const remoteVersion = await getRemoteExerciseVersion();
+			await reloadExercises();
+			await setSetting("exerciseVersion", remoteVersion);
+		}
+		catch(err) {
+			console.error(
+				"Unable to download initial exercise database",
+				err
+			);
+			throw err;
+		}
 
-    if (count === 0 || remoteVersion !== localVersion) {
-        await reloadExercises();
-        await setSetting("exerciseVersion", remoteVersion);
+		return;
+	}
+
+    // Existing database:
+    // app works even without internet
+    try {
+        const remoteVersion = await getRemoteExerciseVersion();
+        const localVersion = await getSetting("exerciseVersion");
+
+        if (remoteVersion !== localVersion) {
+            await reloadExercises();
+            await setSetting("exerciseVersion", remoteVersion);
+        }
+
+    } catch(err) {
+        console.warn(
+            "Skipping exercise update check. Offline mode.",
+            err
+        );
     }
+}
+
+async function replaceExercises(exercises) {
+    const db = await dbPromise;
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("exercises", "readwrite");
+        const store = tx.objectStore("exercises");
+
+        const clearRequest = store.clear();
+
+        clearRequest.onerror = () => {
+            reject(clearRequest.error);
+        };
+
+        for (const ex of exercises) {
+            store.put({
+                ...ex,
+                active: ex.active !== false ? 1 : 0,
+                ab_workout: ex.ab_workout ? 1 : 0
+            });
+        }
+
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+    });
 }
 
 // --- READ OPERATIONS ---
@@ -96,7 +157,6 @@ async function getAllExercises(workoutType = "any") {
 async function reloadExercises() {
     const db = await dbPromise;
 
-    // Load data first (before opening IndexedDB transaction)
     const response = await fetch(EXERCISE_SOURCE);
 
     if (!response.ok) {
@@ -105,21 +165,24 @@ async function reloadExercises() {
 
     const exercises = await response.json();
 
-    // Clear existing exercises
-    await new Promise((resolve, reject) => {
-        const tx = db.transaction("exercises", "readwrite");
+    if (!Array.isArray(exercises) || exercises.length === 0) {
+        throw new Error("Invalid exercise library");
+    }
+
+    return new Promise((resolve, reject) => {
+
+        const tx = db.transaction(
+            "exercises",
+            "readwrite"
+        );
+
         const store = tx.objectStore("exercises");
 
-        store.clear();
+        const clearRequest = store.clear();
 
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-    });
-
-    // Insert new exercises
-    await new Promise((resolve, reject) => {
-        const tx = db.transaction("exercises", "readwrite");
-        const store = tx.objectStore("exercises");
+        clearRequest.onerror = () => {
+            reject(clearRequest.error);
+        };
 
         for (const ex of exercises) {
             store.put({
@@ -131,7 +194,23 @@ async function reloadExercises() {
 
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
     });
+}
+
+async function updateExerciseLibrary(version) {
+	await reloadExercises();
+	await setSetting("exerciseVersion", version);
+}
+
+async function getDBStatus(){
+
+    const db = await dbPromise;
+
+    return {
+        version: db.version,
+        stores:[...db.objectStoreNames]
+    };
 }
 
 async function getExerciseMap() {
@@ -252,11 +331,14 @@ async function insertWorkout(username, exercises, numSets, exDuration, restDurat
 window.DB = {
     initDB,
     reloadExercises,
+    replaceExercises,
+	updateExerciseLibrary,
     getAllExercises,
     getExerciseMap,
     getWorkoutsForUser,
     getAllUsers,
     insertWorkout,
     getSetting,
-    setSetting
+    setSetting,
+	getDBStatus
 };

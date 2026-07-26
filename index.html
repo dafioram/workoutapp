@@ -3,10 +3,12 @@
 <head>
   <title>Workout Generator</title>
   <meta charset="UTF-8">
-  <link rel="manifest" href="static/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4caf50">
   <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+  <link rel="apple-touch-startup-image" href="static/icons/icon-512.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Workout">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
@@ -454,26 +456,45 @@
 
 		ALL_EXERCISES = await window.DB.getAllExercises("any");
 
+		// First install or empty database
+		if (!ALL_EXERCISES.length) {
+			try {
+				await window.DB.reloadExercises();
+				ALL_EXERCISES = await window.DB.getAllExercises("any");
+				showToast("Exercise library downloaded.");
+			} catch (err) {
+				console.error("Initial exercise download failed:", err);
+				showToast("No exercise library available.", "error");
+			}
+		}
+
 		document.getElementById("exerciseCount").textContent =
 			ALL_EXERCISES.length;
-			
+
 		document.getElementById("generateBtn").disabled =
 			ALL_EXERCISES.length === 0;
 	}
 
 	async function reloadExercises() {
-		if (!window.DB) return;
+		try {
+			const response = await fetch(EXERCISE_SOURCE);
 
-		await window.DB.reloadExercises();
-		await loadExercises();
-		
-		currentWorkout = currentWorkout.map(old =>
-			ALL_EXERCISES.find(e => e.id === old.id) || old
-		);
+			if (!response.ok) {
+				throw new Error("Failed to load exercises.json");
+			}
 
-		renderWorkoutUI();
+			const exercises = await response.json();
 
-		showToast("Exercises reloaded.");
+			await window.DB.replaceExercises(exercises);
+
+			await loadExercises();
+
+			showToast("Exercises updated.");
+
+		} catch (err) {
+			console.error("Exercise reload failed:", err);
+			showToast("Update failed. Keeping current exercises.", "error");
+		}
 	}
 
     async function saveWorkout() {

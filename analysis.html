@@ -6,7 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta name="theme-color" content="#4caf50">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="manifest" href="static/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="static/icons/icon-192.png">
 </head>
 <body>
@@ -84,6 +84,21 @@
   // --- INITIALIZATION ---
   document.addEventListener("DOMContentLoaded", async () => {
 	await window.AppReady;
+	
+    if (typeof Chart === "undefined") {
+        console.warn("Chart.js unavailable (offline)");
+
+        document.querySelectorAll("canvas").forEach(canvas => {
+            canvas.style.display = "none";
+        });
+
+        document.body.insertAdjacentHTML(
+            "beforeend",
+            "<p style='text-align:center'>Charts unavailable offline.</p>"
+        );
+
+        return;
+    }
 	
     const username = "Bruno";
     

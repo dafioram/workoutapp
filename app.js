@@ -1,5 +1,23 @@
 // app.js
 
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js")
+            .then(reg => {
+                console.log(
+                    "Service worker registered:",
+                    reg.scope
+                );
+            })
+            .catch(err => {
+                console.error(
+                    "Service worker failed:",
+                    err
+                );
+            });
+    });
+}
+
 // --- SESSION MANAGEMENT (Mimics Flask session) ---
 const Session = {
 	get: (key, def = null) => {
