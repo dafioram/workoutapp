@@ -37,22 +37,36 @@
       margin-left: auto;
       margin-right: auto;
     }
-    ul { padding-left: 20px; margin: 10px 0; }
-    li { margin-bottom: 12px; }
+    ul { padding-left: 0; margin: 10px 0; list-style: none; }
+    li { 
+      margin-bottom: 12px; 
+      display: flex; 
+      align-items: flex-start; 
+      gap: 12px; 
+    }
+    .exercise-checkbox {
+      margin-top: 4px;
+      transform: scale(1.3);
+      cursor: pointer;
+    }
     em { color: #666; font-size: 0.95rem; }
     
-    .back-link {
+    .back-btn {
       display: block;
       text-align: center;
       margin: 30px auto;
-      padding: 12px;
+      padding: 15px;
       color: white;
       background: var(--primary);
       text-decoration: none;
       font-weight: 600;
-      max-width: 200px;
+      font-size: 1.1rem;
+      border: none;
+      width: 100%;
+      max-width: 250px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
     }
   </style>
 </head>
@@ -64,7 +78,7 @@
     <p style="text-align: center;" id="loadingMsg">Loading exercises...</p>
   </div>
 
-  <a href="index.html" class="back-link">Back to Generator</a>
+  <button type="button" class="back-btn" onclick="saveSelectedAndReturn()">Use Selected & Return</button>
 
   <script src="database.js"></script>
   <script src="app.js"></script>
@@ -107,8 +121,11 @@ async function loadExercisesPage() {
             for (const ex of grouped[muscle]) {
                 html += `
                     <li>
-                        <strong>${ex.name}</strong><br>
-                        ${ex.description ? `<em>${ex.description}</em>` : ""}
+                        <input type="checkbox" class="exercise-checkbox" value="${ex.id}">
+                        <div>
+                            <strong>${ex.name}</strong><br>
+                            ${ex.description ? `<em>${ex.description}</em>` : ""}
+                        </div>
                     </li>
                 `;
             }
@@ -123,6 +140,17 @@ async function loadExercisesPage() {
         container.innerHTML =
             "<p style='text-align:center;color:red;'>Failed to load exercises.</p>";
     }
+}
+
+function saveSelectedAndReturn() {
+    const checkboxes = document.querySelectorAll('.exercise-checkbox:checked');
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selectedIds.length > 0) {
+        AppLogic.Session.set('preselected_exercises', selectedIds);
+    }
+    
+    window.location.href = "index.html";
 }
 
 document.addEventListener("DOMContentLoaded", loadExercisesPage);

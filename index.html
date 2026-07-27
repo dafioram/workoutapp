@@ -109,43 +109,43 @@
       margin: 10px auto 0;
       border-radius: 6px;
     }
-		
-	#toast {
-	  position: fixed;
-	  left: 50%;
-	  bottom: 24px;
-	  transform: translateX(-50%) translateY(20px);
-	  background: #323232;
-	  color: white;
-	  padding: 12px 20px;
-	  border-radius: 8px;
-	  font-size: 0.95rem;
-	  box-shadow: 0 4px 12px rgba(0,0,0,.3);
-	  opacity: 0;
-	  pointer-events: none;
-	  transition: opacity .25s ease, transform .25s ease;
-	  z-index: 9999;
-	  max-width: 90%;
-	  text-align: center;
-	}
+        
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: #323232;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+      z-index: 9999;
+      max-width: 90%;
+      text-align: center;
+    }
 
-	#toast.show {
-	  opacity: 1;
-	  transform: translateX(-50%) translateY(0);
-	}
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
-	#toast.success {
-	  background: #4caf50;
-	}
+    #toast.success {
+      background: #4caf50;
+    }
 
-	#toast.error {
-	  background: #d32f2f;
-	}
+    #toast.error {
+      background: #d32f2f;
+    }
 
-	#toast.info {
-	  background: #1976d2;
-	}
-	
+    #toast.info {
+      background: #1976d2;
+    }
+    
     #newUserInput { display: none; }
     
     .lock-area {
@@ -167,13 +167,13 @@
     .lock-icon { pointer-events: none; font-size: 14px; }
     .lock-input { display: none; }
 
-	.lock-icon::before {
-	  content: "🔓";
-	}
+    .lock-icon::before {
+      content: "🔓";
+    }
 
-	.locked .lock-icon::before {
-	  content: "🔒";
-	}
+    .locked .lock-icon::before {
+      content: "🔒";
+    }
 
     .footer-links {
       text-align: center;
@@ -199,11 +199,11 @@
   <div id="toast"></div>
 
   <div class="card-container">
-	
-	<p style="text-align:center;">
-		Exercises loaded:
-		<strong id="exerciseCount">Loading...</strong>
-	</p>
+    
+    <p style="text-align:center;">
+        Exercises loaded:
+        <strong id="exerciseCount">Loading...</strong>
+    </p>
 
     <label>Number of exercises:</label>
     <input type="number" id="num_exercises" value="5" min="1">
@@ -228,21 +228,21 @@
     </fieldset>
 
     <div class="button-group">
-	<button
-		type="button"
-		onclick="reloadExercises()"
-		style="background:#607D8B;">
-		Reload Exercises
-	</button>
-	
+    <button
+        type="button"
+        onclick="reloadExercises()"
+        style="background:#607D8B;">
+        Reload Exercises
+    </button>
+    
       <button
-		id="generateBtn"
-		type="button"
-		onclick="generateWorkout()"
-		style="background:#2196F3;"
-		disabled>
-		Generate / Redraw
-	  </button>
+        id="generateBtn"
+        type="button"
+        onclick="generateWorkout()"
+        style="background:#2196F3;"
+        disabled>
+        Generate / Redraw
+      </button>
       <div id="activeWorkoutButtons" style="display: none;">
         <button type="button" onclick="saveWorkout()" style="background: #ff9800;">Save Workout</button>
         <button type="button" onclick="startTimer()">Start Timer</button>
@@ -277,7 +277,7 @@
     window.addEventListener('touchmove', function() {}, {passive: false});
 
     // Master list of available exercises (Can be fetched or hardcoded for client use)
-	let ALL_EXERCISES = [];
+    let ALL_EXERCISES = [];
 
     let currentWorkout = [];
     let lockedIds = new Set();
@@ -289,27 +289,27 @@
       document.getElementById("currentUserDisplay").innerText = select.value || document.getElementById("new_username").value || "Guest";
     }
 
-	let toastTimer;
+    let toastTimer;
 
-	function showToast(message, type = "success") {
-		const toast = document.getElementById("toast");
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
 
-		toast.className = "";
-		toast.classList.add(type, "show");
-		toast.textContent = message;
-		toast.classList.remove("show");
+        toast.className = "";
+        toast.classList.add(type, "show");
+        toast.textContent = message;
+        toast.classList.remove("show");
 
-		// Force reflow so animation restarts
-		void toast.offsetWidth;
+        // Force reflow so animation restarts
+        void toast.offsetWidth;
 
-		toast.classList.add("show");
+        toast.classList.add("show");
 
-		clearTimeout(toastTimer);
+        clearTimeout(toastTimer);
 
-		toastTimer = setTimeout(() => {
-			toast.classList.remove("show");
-		}, 2500);
-	}
+        toastTimer = setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2500);
+    }
 
     function calculateTotalTime() {
       const numSets = parseInt(document.getElementById("num_sets").value) || 3;
@@ -451,60 +451,60 @@
       }
     });
 
-	async function loadExercises() {
-		if (!window.DB) return;
+    async function loadExercises() {
+        if (!window.DB) return;
 
-		ALL_EXERCISES = await window.DB.getAllExercises("any");
+        ALL_EXERCISES = await window.DB.getAllExercises("any");
 
-		// First install or empty database
-		if (!ALL_EXERCISES.length) {
-			try {
-				await window.DB.reloadExercises();
-				ALL_EXERCISES = await window.DB.getAllExercises("any");
-				showToast("Exercise library downloaded.");
-			} catch (err) {
-				console.error("Initial exercise download failed:", err);
-				showToast("No exercise library available.", "error");
-			}
-		}
+        // First install or empty database
+        if (!ALL_EXERCISES.length) {
+            try {
+                await window.DB.reloadExercises();
+                ALL_EXERCISES = await window.DB.getAllExercises("any");
+                showToast("Exercise library downloaded.");
+            } catch (err) {
+                console.error("Initial exercise download failed:", err);
+                showToast("No exercise library available.", "error");
+            }
+        }
 
-		document.getElementById("exerciseCount").textContent =
-			ALL_EXERCISES.length;
+        document.getElementById("exerciseCount").textContent =
+            ALL_EXERCISES.length;
 
-		document.getElementById("generateBtn").disabled =
-			ALL_EXERCISES.length === 0;
-	}
+        document.getElementById("generateBtn").disabled =
+            ALL_EXERCISES.length === 0;
+    }
 
-	async function reloadExercises() {
-		try {
-			const response = await fetch(EXERCISE_SOURCE);
+    async function reloadExercises() {
+        try {
+            const response = await fetch(EXERCISE_SOURCE);
 
-			if (!response.ok) {
-				throw new Error("Failed to load exercises.json");
-			}
+            if (!response.ok) {
+                throw new Error("Failed to load exercises.json");
+            }
 
-			const exercises = await response.json();
+            const exercises = await response.json();
 
-			await window.DB.replaceExercises(exercises);
+            await window.DB.replaceExercises(exercises);
 
-			await loadExercises();
+            await loadExercises();
 
-			showToast("Exercises updated.");
+            showToast("Exercises updated.");
 
-		} catch (err) {
-			console.error("Exercise reload failed:", err);
-			showToast("Update failed. Keeping current exercises.", "error");
-		}
-	}
+        } catch (err) {
+            console.error("Exercise reload failed:", err);
+            showToast("Update failed. Keeping current exercises.", "error");
+        }
+    }
 
     async function saveWorkout() {
       syncOrderFromDOM();
-	  
-	  if (!currentWorkout.length) {
-	  	showToast("Generate a workout first.", "error");
-	  	return;
-	  }
-	  
+      
+      if (!currentWorkout.length) {
+          showToast("Generate a workout first.", "error");
+          return;
+      }
+      
       try {
         const username = "Bruno";
         const numSets = document.getElementById("num_sets").value;
@@ -517,35 +517,60 @@
           showToast("Workout saved.");
         }
       } catch (err) {
-	    console.error(err);
+        console.error(err);
         showToast("Failed to save workout.", "error");
       }
     }
 
-	function startTimer() {
-	  syncOrderFromDOM();
+    function startTimer() {
+      syncOrderFromDOM();
 
-	  AppLogic.Session.set("current_workout", currentWorkout);
-	  AppLogic.Session.set("num_sets", Number(document.getElementById("num_sets").value));
-	  AppLogic.Session.set("ex_duration", Number(document.getElementById("ex_duration").value));
-	  AppLogic.Session.set("rest_duration", Number(document.getElementById("rest_duration").value));
-	  AppLogic.Session.set(
-		"set_rest",
-		(parseFloat(document.getElementById("set_rest").value) || 1) * 60
-	  );
+      AppLogic.Session.set("current_workout", currentWorkout);
+      AppLogic.Session.set("num_sets", Number(document.getElementById("num_sets").value));
+      AppLogic.Session.set("ex_duration", Number(document.getElementById("ex_duration").value));
+      AppLogic.Session.set("rest_duration", Number(document.getElementById("rest_duration").value));
+      AppLogic.Session.set(
+        "set_rest",
+        (parseFloat(document.getElementById("set_rest").value) || 1) * 60
+      );
 
-	  AppLogic.Session.set("username", "Bruno");
+      AppLogic.Session.set("username", "Bruno");
 
-	  window.location.href = "timer.html";
-	}
+      window.location.href = "timer.html";
+    }
 
-	document.addEventListener("DOMContentLoaded", async () => {
-		await window.AppReady;
-		
-		AppLogic.Session.set("username", "Bruno");
+    document.addEventListener("DOMContentLoaded", async () => {
+        await window.AppReady;
+        
+        AppLogic.Session.set("username", "Bruno");
 
-		await loadExercises();
-	});
+        await loadExercises();
+
+        // CHECK FOR PRE-SELECTED EXERCISES FROM EXERCISES.HTML
+        // Inside your DOMContentLoaded listener:
+		const selectedIds = AppLogic.Session.get("preselected_exercises");
+
+		if (selectedIds && selectedIds.length > 0)
+		{
+			// Match the saved IDs to the actual exercise objects
+			const preselectedWorkout = [];
+			selectedIds.forEach(id => {
+				const ex = ALL_EXERCISES.find(e => String(e.id) === String(id));
+				if (ex) preselectedWorkout.push(ex);
+			});
+
+			if (preselectedWorkout.length > 0) {
+				currentWorkout = preselectedWorkout;
+				document.getElementById("num_exercises").value = currentWorkout.length;
+				
+				renderWorkoutUI();
+				showToast(`${currentWorkout.length} exercises imported.`);
+			}
+			
+			// Clear it so it doesn't trigger again on normal reloads
+			AppLogic.Session.remove("preselected_exercises");
+		}
+    });
   </script>
 </body>
 </html>
