@@ -37,95 +37,177 @@
       margin-left: auto;
       margin-right: auto;
     }
-    ul { padding-left: 20px; margin: 10px 0; }
-    li { margin-bottom: 12px; }
+    ul { padding-left: 0; margin: 10px 0; list-style: none; }
+    li { 
+      margin-bottom: 12px; 
+      display: flex; 
+      align-items: flex-start; 
+      gap: 12px; 
+    }
+    .exercise-checkbox {
+      margin-top: 4px;
+      transform: scale(1.3);
+      cursor: pointer;
+    }
     em { color: #666; font-size: 0.95rem; }
     
-    .back-link {
+    .btn {
       display: block;
       text-align: center;
-      margin: 30px auto;
-      padding: 12px;
+      margin: 10px auto;
+      padding: 15px;
       color: white;
-      background: var(--primary);
       text-decoration: none;
       font-weight: 600;
-      max-width: 200px;
+      font-size: 1.1rem;
+      border: none;
+      width: 100%;
+      max-width: 250px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
     }
+    .back-btn { background: var(--primary); margin-top: 30px; }
+    .reload-btn { background: #607D8B; margin-bottom: 20px; }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: #323232;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+      z-index: 9999;
+      max-width: 90%;
+      text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { background: #4caf50; }
+    #toast.error { background: #d32f2f; }
   </style>
 </head>
 <body>
 
   <h1>All Exercises</h1>
+  
+  <div id="toast"></div>
+
+  <p style="text-align:center;">
+      Exercises loaded:
+      <strong id="exerciseCount">Loading...</strong>
+  </p>
+
+  <button type="button" class="btn reload-btn" onclick="reloadExercises()">Reload Exercises</button>
 
   <div id="exercisesContainer">
     <p style="text-align: center;" id="loadingMsg">Loading exercises...</p>
   </div>
 
-  <a href="index.html" class="back-link">Back to Generator</a>
+  <button type="button" class="btn back-btn" onclick="saveSelectedAndReturn()">Use Selected & Return</button>
 
   <script src="database.js"></script>
   <script src="app.js"></script>
   <script>
+    let toastTimer;
 
-async function loadExercisesPage() {
-    const container = document.getElementById("exercisesContainer");
-
-    try {
-        await window.AppReady;
-
-        const exercises = await window.DB.getAllExercises("any");
-
-        container.innerHTML = "";
-
-        if (!exercises.length) {
-            container.innerHTML = "<p style='text-align:center;'>No exercises found.</p>";
-            return;
-        }
-
-        // Group by muscle
-        const grouped = {};
-
-        for (const ex of exercises) {
-            const muscle = ex.muscle || "General";
-
-            if (!grouped[muscle]) {
-                grouped[muscle] = [];
-            }
-
-            grouped[muscle].push(ex);
-        }
-
-        for (const muscle of Object.keys(grouped).sort()) {
-            const section = document.createElement("div");
-            section.className = "category-container";
-
-            let html = `<h2>${muscle}</h2><ul>`;
-
-            for (const ex of grouped[muscle]) {
-                html += `
-                    <li>
-                        <strong>${ex.name}</strong><br>
-                        ${ex.description ? `<em>${ex.description}</em>` : ""}
-                    </li>
-                `;
-            }
-
-            html += "</ul>";
-
-            section.innerHTML = html;
-            container.appendChild(section);
-        }
-    } catch (err) {
-        console.error("Failed to load exercises:", err);
-        container.innerHTML =
-            "<p style='text-align:center;color:red;'>Failed to load exercises.</p>";
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        toast.className = "";
+        toast.classList.add(type, "show");
+        toast.textContent = message;
+        toast.classList.remove("show");
+        void toast.offsetWidth;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toast.classList.remove("show"); }, 2500);
     }
-}
 
-document.addEventListener("DOMContentLoaded", loadExercisesPage);
-</script>
+    async function loadExercisesPage() {
+        const container = document.getElementById("exercisesContainer");
+
+        try {
+            await window.AppReady;
+            const exercises = await window.DB.getAllExercises("any");
+
+            document.getElementById("exerciseCount").textContent = exercises.length;
+            container.innerHTML = "";
+
+            if (!exercises.length) {
+                container.innerHTML = "<p style='text-align:center;'>No exercises found.</p>";
+                return;
+            }
+
+            const grouped = {};
+            for (const ex of exercises) {
+                const muscle = ex.muscle || "General";
+                if (!grouped[muscle]) grouped[muscle] = [];
+                grouped[muscle].push(ex);
+            }
+
+            for (const muscle of Object.keys(grouped).sort()) {
+                const section = document.createElement("div");
+                section.className = "category-container";
+                let html = `<h2>${muscle}</h2><ul>`;
+
+                for (const ex of grouped[muscle]) {
+                    html += `
+                        <li>
+                            <input type="checkbox" class="exercise-checkbox" value="${ex.id}">
+                            <div>
+                                <strong>${ex.name}</strong><br>
+                                ${ex.description ? `<em>${ex.description}</em>` : ""}
+                            </div>
+                        </li>
+                    `;
+                }
+
+                html += "</ul>";
+                section.innerHTML = html;
+                container.appendChild(section);
+            }
+        } catch (err) {
+            console.error("Failed to load exercises:", err);
+            container.innerHTML = "<p style='text-align:center;color:red;'>Failed to load exercises.</p>";
+        }
+    }
+
+    async function reloadExercises() {
+        try {
+            const response = await fetch(EXERCISE_SOURCE); // Ensure EXERCISE_SOURCE exists in app.js
+            if (!response.ok) throw new Error("Failed to load exercises.json");
+            
+            const exercises = await response.json();
+            await window.DB.replaceExercises(exercises);
+            await loadExercisesPage();
+            
+            showToast("Exercises updated.");
+        } catch (err) {
+            console.error("Exercise reload failed:", err);
+            showToast("Update failed. Keeping current exercises.", "error");
+        }
+    }
+
+    function saveSelectedAndReturn() {
+        const checkboxes = document.querySelectorAll('.exercise-checkbox:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (selectedIds.length > 0) {
+            AppLogic.Session.set('preselected_exercises', selectedIds);
+        } else {
+            AppLogic.Session.remove('preselected_exercises');
+        }
+        
+        window.location.href = "index.html";
+    }
+
+    document.addEventListener("DOMContentLoaded", loadExercisesPage);
+  </script>
 </body>
 </html>
