@@ -347,45 +347,57 @@
       document.getElementById("total_time").innerText = calculateTotalTime();
     }
 
-    function generateWorkout() {
-      const numExercises = parseInt(document.getElementById("num_exercises").value) || 5;
-      const workoutType = document.querySelector('input[name="workout_type"]:checked').value;
+	function generateWorkout() {
+	  const numExercises = parseInt(document.getElementById("num_exercises").value) || 5;
+	  const workoutType = document.querySelector('input[name="workout_type"]:checked').value;
 
-      let pool = ALL_EXERCISES.filter(ex => {
-        if (workoutType === 'core') return ex.type === 'core';
-        if (workoutType === 'cardio') return ex.type === 'cardio';
-        return true;
-      });
+	  // Filter based on selected workout type
+	  let pool = ALL_EXERCISES.filter(ex => {
+		if (workoutType === 'core') {
+		  return ex.ab_workout === true || ex.type === 'core' || ex.muscle === 'abs' || ex.body_part === 'abs';
+		}
+		if (workoutType === 'cardio') {
+		  return ex.type === 'cardio';
+		}
+		return true;
+	  });
 
-      let newWorkoutMap = new Map();
-      currentWorkout.forEach((ex, idx) => {
-        if (lockedIds.has(String(ex.id))) {
-          newWorkoutMap.set(idx, ex);
-        }
-      });
+	  if (pool.length === 0) {
+		showToast("No exercises found for this type.", "error");
+		return;
+	  }
 
-      pool.sort(() => Math.random() - 0.5);
+	  // Keep locked exercises in place, replace unlocked ones
+	  let newWorkoutMap = new Map();
+	  currentWorkout.forEach((ex, idx) => {
+		if (lockedIds.has(String(ex.id))) {
+		  newWorkoutMap.set(idx, ex);
+		}
+	  });
 
-      let poolIndex = 0;
-      currentWorkout = [];
-      for (let i = 0; i < numExercises; i++) {
-        if (newWorkoutMap.has(i)) {
-          currentWorkout.push(newWorkoutMap.get(i));
-        } else {
-          while (poolIndex < pool.length && Array.from(newWorkoutMap.values()).some(e => e.id === pool[poolIndex].id)) {
-            poolIndex++;
-          }
-          if (poolIndex < pool.length) {
-            currentWorkout.push(pool[poolIndex]);
-            poolIndex++;
-          } else if (pool.length > 0) {
-            currentWorkout.push(pool[i % pool.length]);
-          }
-        }
-      }
+	  // Shuffle pool
+	  pool.sort(() => Math.random() - 0.5);
 
-      renderWorkoutUI();
-    }
+	  let poolIndex = 0;
+	  currentWorkout = [];
+	  for (let i = 0; i < numExercises; i++) {
+		if (newWorkoutMap.has(i)) {
+		  currentWorkout.push(newWorkoutMap.get(i));
+		} else {
+		  while (poolIndex < pool.length && Array.from(newWorkoutMap.values()).some(e => e.id === pool[poolIndex].id)) {
+			poolIndex++;
+		  }
+		  if (poolIndex < pool.length) {
+			currentWorkout.push(pool[poolIndex]);
+			poolIndex++;
+		  } else if (pool.length > 0) {
+			currentWorkout.push(pool[i % pool.length]);
+		  }
+		}
+	  }
+
+	  renderWorkoutUI();
+	}
 
     function syncOrderFromDOM() {
       const sortable = document.getElementById("sortable");
