@@ -133,12 +133,49 @@
   const beepShort = new Audio("static/sounds/beep_short.mp3");
   const beepLong = new Audio("static/sounds/beep_long.mp3");
   const finishSound = new Audio("static/sounds/finish.mp3");
+  beepShort.preload = "auto";
+  beepLong.preload = "auto";
+  finishSound.preload = "auto";
+
+  // --- iPad/iOS Safari audio unlock ---
+  // Safari only allows audio.play() to start playback when it's called
+  // directly inside a user gesture (e.g. a tap handler). Our beeps normally
+  // fire later from inside a setTimeout() chain, which Safari blocks.
+  // To fix this, we "prime" all three Audio objects (muted, then immediately
+  // paused) while we're still inside the Start button's click handler. Once
+  // primed, Safari allows the same Audio objects to play later from the timer.
+  let audioUnlocked = false;
+  async function unlockAudio() {
+    if (audioUnlocked) return;
+    const sounds = [beepShort, beepLong, finishSound];
+    try {
+      for (const audio of sounds) {
+        const prevVolume = audio.volume;
+        audio.volume = 0;
+        await audio.play();
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = prevVolume;
+      }
+      audioUnlocked = true;
+    } catch (err) {
+      console.error("Could not unlock audio for Safari:", err);
+    }
+  }
 
   function playBeep(type) {
-    if (type === "exercise") beepLong.play().catch(()=>{});
-    else beepShort.play().catch(()=>{});
+    const audio = type === "exercise" ? beepLong : beepShort;
+    audio.currentTime = 0;
+    audio.play().catch(err => {
+      console.error("Beep playback failed:", err);
+    });
   }
-  function playFinishSound() { finishSound.play().catch(() => {}); }
+  function playFinishSound() {
+    finishSound.currentTime = 0;
+    finishSound.play().catch(err => {
+      console.error("Finish sound playback failed:", err);
+    });
+  }
 
   function updateButtons(state) {
     const back = document.getElementById("backBtn");
@@ -291,7 +328,11 @@
     document.getElementById("progressBar").style.background = barColor;
   }
 
-  function startWorkout() {
+  async function startWorkout() {
+    // IMPORTANT: this must run first, while we're still inside the
+    // Start button's click handler, so Safari treats it as user-initiated.
+    await unlockAudio();
+
     updateButtons("running"); 
     phase = "countdown";
     timeLeft = 7;
