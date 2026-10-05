@@ -64,7 +64,6 @@
     #startBtn { background-color: #28a745; }
     #pauseBtn { background-color: #ffc107; color: black; }
     #resumeBtn { background-color: #28a745; }
-    #skipBtn { background-color: #17a2b8; flex: 0.5; }
     #endBtn { background-color: #ff9800; }
 
     .exercise-phase { background: #d4edda; }
@@ -94,7 +93,6 @@
   <div id="controls-container">
     <button id="backBtn" onclick="confirmExit()">Back</button>
     <button id="startBtn" onclick="startWorkout()">Start</button>
-    <button id="skipBtn" onclick="skipPhase()" style="display:none;">Skip</button>
     <button id="pauseBtn" onclick="pauseWorkout()" style="display:none;">Pause</button>
     <button id="endBtn" onclick="endWorkoutEarly()" style="display:none;">End &amp; Save</button>
     <button id="resumeBtn" onclick="resumeWorkout()" style="display:none;">Resume</button>
@@ -231,11 +229,11 @@
   function updateButtons(mode) {
     const visible = {
       ready: ["backBtn", "startBtn"],
-      running: ["skipBtn", "pauseBtn"],
+      running: ["pauseBtn"],
       paused: ["backBtn", "endBtn", "resumeBtn"],
       finished: ["backBtn"]
     }[mode];
-    ["backBtn", "startBtn", "skipBtn", "pauseBtn", "endBtn", "resumeBtn"].forEach(id => {
+    ["backBtn", "startBtn", "pauseBtn", "endBtn", "resumeBtn"].forEach(id => {
       document.getElementById(id).style.display = visible.includes(id) ? "block" : "none";
     });
   }
@@ -289,40 +287,18 @@
     update();
   }
 
-  function skipPhase() {
-    if (state !== "running" && state !== "paused") return;
-    const next = phaseIdx + 1;
-    if (next >= phases.length) {
-      finishWorkout();
-      return;
-    }
-    const durationMs = phases[next].duration * 1000;
-    enterPhase(next, Date.now() + durationMs);
-    if (state === "paused") pausedRemainingMs = durationMs;
-    renderClock();
-  }
-
-  // What has actually been done so far: exercises whose time fully ran out.
+  // Only full sets count: a set is done once its last exercise's time ran out.
   function completedSoFar() {
     const doneExercises = phases.filter((p, i) => p.type === "exercise" && i < phaseIdx).length;
     const fullSets = Math.floor(doneExercises / workout.length);
-    if (fullSets >= 1) {
-      return { exercises: workout, sets: fullSets, label: `${fullSets} of ${numSets} sets` };
-    }
-    if (doneExercises > 0) {
-      return {
-        exercises: workout.slice(0, doneExercises),
-        sets: 1,
-        label: `${doneExercises} of ${workout.length} exercises`
-      };
-    }
-    return null;
+    if (fullSets < 1) return null;
+    return { exercises: workout, sets: fullSets, label: `${fullSets} of ${numSets} sets` };
   }
 
   function endWorkoutEarly() {
     const done = completedSoFar();
     if (!done) {
-      if (confirm("Nothing completed yet, so there's nothing to save. Exit the workout?")) {
+      if (confirm("No full set completed yet, so there's nothing to save. Exit the workout?")) {
         location.href = "index.html";
       }
       return;
@@ -347,7 +323,7 @@
     const now = Date.now();
 
     if (now >= phaseEndsAt) {
-      // Skip past every phase that has fully elapsed (e.g. the phone slept)
+      // Move past every phase that has fully elapsed (e.g. the phone slept)
       let next = phaseIdx + 1;
       let endsAt = phaseEndsAt;
       while (next < phases.length && endsAt + phases[next].duration * 1000 <= now) {
