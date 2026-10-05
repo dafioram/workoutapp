@@ -304,6 +304,49 @@
       };
     }
 
+    // --- Remember the last-used settings between visits ---
+    const SETTING_INPUTS = ["num_exercises", "num_sets", "ex_duration", "rest_duration", "set_rest"];
+
+    async function saveSettings() {
+      const saved = {
+        workout_type: document.querySelector('input[name="workout_type"]:checked').value
+      };
+      SETTING_INPUTS.forEach(id => { saved[id] = document.getElementById(id).value; });
+      try {
+        await DB.setSetting("workoutSettings", saved);
+      } catch (err) {
+        console.warn("Could not save settings", err);
+      }
+    }
+
+    async function restoreSettings() {
+      let saved = null;
+      try {
+        saved = await DB.getSetting("workoutSettings");
+      } catch (err) {
+        console.warn("Could not load settings", err);
+      }
+      if (!saved) return;
+
+      SETTING_INPUTS.forEach(id => {
+        if (saved[id] !== undefined && saved[id] !== "") {
+          document.getElementById(id).value = saved[id];
+        }
+      });
+      const typeInput = document.querySelector(`input[name="workout_type"][value="${saved.workout_type}"]`);
+      if (typeInput) typeInput.checked = true;
+    }
+
+    [...SETTING_INPUTS.map(id => document.getElementById(id)),
+     ...document.querySelectorAll('input[name="workout_type"]')].forEach(el => {
+      el.addEventListener("change", () => {
+        saveSettings();
+        if (currentWorkout.length) {
+          document.getElementById("total_time").innerText = calculateTotalTime();
+        }
+      });
+    });
+
     function calculateTotalTime() {
       const { numSets, exDuration, restDuration, setRest } = readSettings();
       const count = currentWorkout.length;
@@ -447,19 +490,21 @@
       }
     });
 
-    async function loadExercises() {
+    async function loadExercises(retryDownload = true) {
         if (!window.DB) return;
 
         ALL_EXERCISES = await window.DB.getAllExercises("any");
 
-        if (!ALL_EXERCISES.length) {
+        if (!ALL_EXERCISES.length && !retryDownload) {
+            showToast("Couldn't download exercises. Check your connection and reload.", "error");
+        } else if (!ALL_EXERCISES.length) {
             try {
                 await window.DB.reloadExercises();
                 ALL_EXERCISES = await window.DB.getAllExercises("any");
                 showToast("Exercise library downloaded.");
             } catch (err) {
                 console.error("Initial exercise download failed:", err);
-                showToast("No exercise library available.", "error");
+                showToast("Couldn't download exercises. Check your connection and reload.", "error");
             }
         }
 
@@ -503,10 +548,21 @@
       window.location.href = "timer.html";
     }
 
+    // A newer exercise library finished downloading in the background
+    window.addEventListener("exercises-updated", () => loadExercises());
+
     document.addEventListener("DOMContentLoaded", async () => {
-        await window.AppReady;
+        await restoreSettings();
+        let ready = true;
+        try {
+            await window.AppReady;
+        } catch (err) {
+            // First launch and the download failed or timed out; don't make the user wait again
+            console.error("App initialization failed:", err);
+            ready = false;
+        }
         AppLogic.Session.set("username", "Bruno");
-        await loadExercises();
+        await loadExercises(ready);
 
         // Check for pre-selected exercises using your state manager
         const selectedIds = AppLogic.Session.get("preselected_exercises");
