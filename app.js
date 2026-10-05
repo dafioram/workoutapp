@@ -48,6 +48,13 @@ function calculateTotalTime(numExercises, numSets, exDuration, restDuration, set
     return total;
 }
 
+// "YYYY-MM-DD HH:MM" in the phone's local time
+function formatLocalDateTime(dateObj) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())} ` +
+           `${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+}
+
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const sec = seconds % 60;
@@ -137,9 +144,9 @@ async function getAnalysisData(username) {
     const aggregate = (by = "week") => {
         const totals = {};
         
-        workouts.forEach(w => {
+        workoutsSorted.forEach(w => {
             if (!w.timestamp) return;
-            const dt = new Date(w.timestamp);
+            const dt = window.DB.parseTimestamp(w.timestamp);
             
             const key = by === "week" ? getISOWeek(dt) : `${dt.getFullYear()}-${(dt.getMonth()+1).toString().padStart(2, '0')}`;
             
@@ -162,7 +169,7 @@ async function getAnalysisData(username) {
             
             // Build Trend Arrays while iterating (only need to do it once)
             if (by === "week") {
-                trendLabels.push(dt.toISOString().substring(0,16).replace('T', ' '));
+                trendLabels.push(formatLocalDateTime(dt));
                 trendExercise.push(exTime);
                 trendRest.push(rTime);
             }
@@ -213,6 +220,7 @@ window.AppLogic = {
     WORKOUT_START_DELAY,
     calculateTotalTime,
     formatTime,
+    formatLocalDateTime,
     generateWorkoutAlgorithm,
     getAnalysisData
 };

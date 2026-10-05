@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Workout">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+  <link rel="stylesheet" href="static/vendor/mobile-drag-drop-2.3.0-rc.2.css">
 
   <style>
     :root {
@@ -263,12 +263,12 @@
     <a href="history.html">View Workout History</a>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+  <script src="static/vendor/mobile-drag-drop-2.3.0-rc.2.min.js"></script>
   <script src="database.js"></script>
   <script src="app.js"></script>
 
   <script>
-    MobileDragDrop.polyfill({ holdToDrag: 150 });
+    if (window.MobileDragDrop) MobileDragDrop.polyfill({ holdToDrag: 150 });
     window.addEventListener('touchmove', function() {}, {passive: false});
 
     let ALL_EXERCISES = [];
@@ -288,11 +288,24 @@
         toastTimer = setTimeout(() => { toast.classList.remove("show"); }, 2500);
     }
 
+    // Reads a number input, falling back only when it's empty/invalid,
+    // so a deliberate 0 (e.g. no rest) is kept.
+    function readNumber(id, fallback, min = 0) {
+      const val = parseFloat(document.getElementById(id).value);
+      return Number.isFinite(val) && val >= min ? val : fallback;
+    }
+
+    function readSettings() {
+      return {
+        numSets: Math.round(readNumber("num_sets", 3, 1)),
+        exDuration: Math.round(readNumber("ex_duration", 40, 1)),
+        restDuration: Math.round(readNumber("rest_duration", 20)),
+        setRest: Math.round(readNumber("set_rest", 1) * 60)
+      };
+    }
+
     function calculateTotalTime() {
-      const numSets = parseInt(document.getElementById("num_sets").value) || 3;
-      const exDuration = parseInt(document.getElementById("ex_duration").value) || 40;
-      const restDuration = parseInt(document.getElementById("rest_duration").value) || 20;
-      const setRest = (parseFloat(document.getElementById("set_rest").value) || 1) * 60;
+      const { numSets, exDuration, restDuration, setRest } = readSettings();
       const count = currentWorkout.length;
 
       if (count === 0) return "0:00";
@@ -354,7 +367,7 @@
 	  // Filter based on selected workout type
 	  let pool = ALL_EXERCISES.filter(ex => {
 		if (workoutType === 'core') {
-		  return ex.ab_workout === true || ex.type === 'core' || ex.muscle === 'abs' || ex.body_part === 'abs';
+		  return ex.ab_workout === 1; // stored as 1/0 in IndexedDB
 		}
 		if (workoutType === 'cardio') {
 		  return ex.type === 'cardio';
@@ -463,10 +476,7 @@
       
       try {
         const username = "Bruno";
-        const numSets = document.getElementById("num_sets").value;
-        const exDuration = document.getElementById("ex_duration").value;
-        const restDuration = document.getElementById("rest_duration").value;
-        const setRest = document.getElementById("set_rest").value * 60;
+        const { numSets, exDuration, restDuration, setRest } = readSettings();
 
         if (window.DB && window.DB.insertWorkout) {
           await window.DB.insertWorkout(username, currentWorkout, numSets, exDuration, restDuration, setRest);
@@ -481,14 +491,12 @@
     function startTimer() {
       syncOrderFromDOM();
 
+      const { numSets, exDuration, restDuration, setRest } = readSettings();
       AppLogic.Session.set("current_workout", currentWorkout);
-      AppLogic.Session.set("num_sets", Number(document.getElementById("num_sets").value));
-      AppLogic.Session.set("ex_duration", Number(document.getElementById("ex_duration").value));
-      AppLogic.Session.set("rest_duration", Number(document.getElementById("rest_duration").value));
-      AppLogic.Session.set(
-        "set_rest",
-        (parseFloat(document.getElementById("set_rest").value) || 1) * 60
-      );
+      AppLogic.Session.set("num_sets", numSets);
+      AppLogic.Session.set("ex_duration", exDuration);
+      AppLogic.Session.set("rest_duration", restDuration);
+      AppLogic.Session.set("set_rest", setRest);
 
       AppLogic.Session.set("username", "Bruno");
 

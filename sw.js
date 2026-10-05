@@ -1,5 +1,7 @@
 const APP_NAME = "workout";
-const VER = "1"
+// Bump when APP_FILES changes. Edits to existing files don't need a bump:
+// they are picked up in the background and served on the next launch.
+const VER = "2"
 
 const CACHE_NAME = APP_NAME + "-v" + VER
 
@@ -24,7 +26,11 @@ const APP_FILES = [
 
     `${basePath}/static/sounds/beep_short.mp3`,
     `${basePath}/static/sounds/beep_long.mp3`,
-    `${basePath}/static/sounds/finish.mp3`
+    `${basePath}/static/sounds/finish.mp3`,
+
+    `${basePath}/static/vendor/chart-4.5.1.umd.min.js`,
+    `${basePath}/static/vendor/mobile-drag-drop-2.3.0-rc.2.min.js`,
+    `${basePath}/static/vendor/mobile-drag-drop-2.3.0-rc.2.css`
 ];
 
 
@@ -55,12 +61,36 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch event: Serve from cache, fallback to network
+// Fetch event: stale-while-revalidate for this app's own files.
+// Serve from cache immediately (works offline, no waiting on a slow network),
+// then refresh the cached copy in the background so updates show up next launch.
+// Cross-origin requests (the exercise library) go straight to the network;
+// that data is stored in IndexedDB instead.
 self.addEventListener('fetch', (event) => {
+    const request = event.request;
+    if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
+        return;
+    }
+
     event.respondWith(
-        // ignoreSearch: true prevents URL parameters from breaking offline access
-        caches.match(event.request, { ignoreSearch: true }).then((response) => {
-            return response || fetch(event.request);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            // ignoreSearch: true prevents URL parameters from breaking offline access
+            const cached = await cache.match(request, { ignoreSearch: true });
+
+            const network = fetch(request).then((response) => {
+                // Only cache full responses; Safari requests audio with Range
+                // headers and cache.put() rejects 206 Partial Content.
+                if (response.status === 200) {
+                    cache.put(request, response.clone());
+                }
+                return response;
+            });
+
+            if (cached) {
+                event.waitUntil(network.catch(() => {}));
+                return cached;
+            }
+            return network;
         })
     );
 });
