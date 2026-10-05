@@ -503,9 +503,7 @@
       try {
           // Changed to client-side IndexedDB save
           if (window.DB && window.DB.insertWorkout) {
-              const currentUsername = AppLogic.Session.get("username", "Guest");
               await window.DB.insertWorkout(
-                  currentUsername, 
                   exercises, 
                   sets, 
                   exDuration, 

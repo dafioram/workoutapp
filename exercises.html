@@ -104,7 +104,7 @@
       <strong id="exerciseCount">Loading...</strong>
   </p>
 
-  <button type="button" class="btn reload-btn" onclick="reloadExercises()">Reload Exercises</button>
+  <button type="button" class="btn reload-btn" onclick="reloadLibrary()">Reload Exercises</button>
 
   <div id="exercisesContainer">
     <p style="text-align: center;" id="loadingMsg">Loading exercises...</p>
@@ -178,13 +178,11 @@
         }
     }
 
-    async function reloadExercises() {
+    async function reloadLibrary() {
         try {
-            const response = await fetchWithTimeout(EXERCISE_SOURCE, {}, 15000); // defined in database.js
-            if (!response.ok) throw new Error("Failed to load exercises.json");
-            
-            const exercises = await response.json();
-            await window.DB.replaceExercises(exercises);
+            // Record the version too, so the next startup doesn't download it again
+            const version = await getRemoteExerciseVersion(); // defined in database.js
+            await window.DB.updateExerciseLibrary(version);
             await loadExercisesPage();
             
             showToast("Exercises updated.");

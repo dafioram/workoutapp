@@ -520,11 +520,10 @@
       }
       
       try {
-        const username = "Bruno";
         const { numSets, exDuration, restDuration, setRest } = readSettings();
 
         if (window.DB && window.DB.insertWorkout) {
-          await window.DB.insertWorkout(username, currentWorkout, numSets, exDuration, restDuration, setRest);
+          await window.DB.insertWorkout(currentWorkout, numSets, exDuration, restDuration, setRest);
           showToast("Workout saved.");
         }
       } catch (err) {
@@ -543,8 +542,6 @@
       AppLogic.Session.set("rest_duration", restDuration);
       AppLogic.Session.set("set_rest", setRest);
 
-      AppLogic.Session.set("username", "Bruno");
-
       window.location.href = "timer.html";
     }
 
@@ -561,7 +558,6 @@
             console.error("App initialization failed:", err);
             ready = false;
         }
-        AppLogic.Session.set("username", "Bruno");
         await loadExercises(ready);
 
         // Check for pre-selected exercises using your state manager
@@ -576,11 +572,19 @@
                 });
 
                 if (preselectedWorkout.length > 0) {
+                    // Lock the picks so Generate keeps them and only fills the other slots
                     currentWorkout = preselectedWorkout;
-                    document.getElementById("num_exercises").value = currentWorkout.length;
-                    
+                    currentWorkout.forEach(ex => lockedIds.add(String(ex.id)));
+
+                    const numInput = document.getElementById("num_exercises");
+                    const target = Math.max(parseInt(numInput.value) || 0, currentWorkout.length);
+                    numInput.value = target;
+
                     renderWorkoutUI();
-                    showToast(`${currentWorkout.length} exercises imported.`);
+                    const remaining = target - currentWorkout.length;
+                    showToast(remaining > 0
+                        ? `${currentWorkout.length} picked and locked. Tap Generate to add ${remaining} more.`
+                        : `${currentWorkout.length} exercises picked and locked.`);
                 }
             } catch (err) {
                 console.error("Failed to load preselected exercises:", err);

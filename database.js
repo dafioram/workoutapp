@@ -123,6 +123,8 @@ async function initDB() {
 			const remoteVersion = await getRemoteExerciseVersion();
 			await reloadExercises();
 			await setSetting("exerciseVersion", remoteVersion);
+			// Just downloaded; the next page doesn't need to check again
+			sessionStorage.setItem("exerciseUpdateCheckedAt", String(Date.now()));
 		}
 		catch(err) {
 			console.error(
@@ -208,8 +210,6 @@ async function getAllExercises(workoutType = "any") {
 }
 
 async function reloadExercises() {
-    const db = await dbPromise;
-
     const response = await fetchWithTimeout(EXERCISE_SOURCE, {}, 15000);
 
     if (!response.ok) {
@@ -222,29 +222,7 @@ async function reloadExercises() {
         throw new Error("Invalid exercise library");
     }
 
-    return new Promise((resolve, reject) => {
-
-        const tx = db.transaction(
-            "exercises",
-            "readwrite"
-        );
-
-        const store = tx.objectStore("exercises");
-
-        const clearRequest = store.clear();
-
-        clearRequest.onerror = () => {
-            reject(clearRequest.error);
-        };
-
-        for (const ex of exercises) {
-            store.put(toStoredExercise(ex));
-        }
-
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-    });
+    return replaceExercises(exercises);
 }
 
 async function updateExerciseLibrary(version) {
@@ -270,36 +248,12 @@ async function getExerciseMap() {
     }, {});
 }
 
-async function getWorkoutsForUser(username) {
-    const db = await dbPromise;
-    return new Promise((resolve) => {
-        const tx = db.transaction("workouts", "readonly");
-        const store = tx.objectStore("workouts");
-        const index = store.index("username");
-        const request = index.getAll(IDBKeyRange.only(username));
-        
-        request.onsuccess = () => {
-            // Sort descending by timestamp like the SQL query
-            const workouts = request.result.sort((a, b) =>
-                parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp)
-            );
-            resolve(workouts);
-        };
-    });
-}
-
-async function getAllUsers() {
-    const db = await dbPromise;
-    return new Promise((resolve) => {
-        const tx = db.transaction("workouts", "readonly");
-        const store = tx.objectStore("workouts");
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-            const users = new Set(request.result.map(w => w.username));
-            resolve(Array.from(users).sort());
-        };
-    });
+// All saved workouts, newest first
+async function getWorkouts() {
+    const workouts = await getAllWorkouts();
+    return workouts.sort((a, b) =>
+        parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp)
+    );
 }
 
 async function getSetting(key) {
@@ -335,11 +289,10 @@ async function setSetting(key, value) {
 }
 
 // --- WRITE OPERATIONS ---
-async function insertWorkout(username, exercises, numSets, exDuration, restDuration, setRest, location = "home", rpe = 5, notes = "") {
+async function insertWorkout(exercises, numSets, exDuration, restDuration, setRest, location = "home", rpe = 5, notes = "") {
     const db = await dbPromise;
 
     const workoutData = {
-        username,
         timestamp: new Date().toISOString(),
         num_sets: Number(numSets),
         exercise_duration: Number(exDuration),
@@ -388,9 +341,9 @@ async function getAllWorkouts() {
 }
 
 // Adds workouts from a backup, skipping any already stored
-// (same user and same time). Returns { added, skipped }.
+// (same time). Returns { added, skipped }.
 async function importWorkouts(workouts) {
-    const keyOf = (w) => `${w.username}|${parseTimestamp(w.timestamp).getTime()}`;
+    const keyOf = (w) => parseTimestamp(w.timestamp).getTime();
     const existing = new Set((await getAllWorkouts()).map(keyOf));
 
     const toAdd = [];
@@ -425,12 +378,10 @@ async function importWorkouts(workouts) {
 window.DB = {
     initDB,
     reloadExercises,
-    replaceExercises,
 	updateExerciseLibrary,
     getAllExercises,
     getExerciseMap,
-    getWorkoutsForUser,
-    getAllUsers,
+    getWorkouts,
     insertWorkout,
     getSetting,
     setSetting,

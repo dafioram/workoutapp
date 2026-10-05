@@ -8,38 +8,48 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="static/pages.css">
 </head>
 <body>
-  <h1>Workout Analysis</h1>
-  <nav>
-    <a href="index.html">Generator</a> |
-    <a href="history.html">History</a> |
-    <a href="exercises.html">All Exercises</a> |
-    <a href="analysis.html">Analysis</a>
+  <nav class="top-nav">
+    <a href="index.html">Generator</a>
+    <a href="history.html">History</a>
+    <a href="analysis.html" aria-current="page">Analysis</a>
   </nav>
-  <hr>
 
-  <div>
-    <strong>View by: </strong>
-    <label>
-      <input type="radio" name="viewMode" value="week" onclick="setView('week')" checked> Weekly
-    </label>
-    <label>
-      <input type="radio" name="viewMode" value="month" onclick="setView('month')"> Monthly
-    </label>
+  <h1>Workout Analysis</h1>
+
+  <p id="emptyMessage" class="card muted" style="text-align:center; display:none;">
+    No workouts saved yet. Finish a workout and your stats will show up here.
+  </p>
+
+  <div id="charts">
+    <div class="segmented" role="radiogroup" aria-label="View by">
+      <label><input type="radio" name="viewMode" value="week" onclick="setView('week')" checked><span>Weekly</span></label>
+      <label><input type="radio" name="viewMode" value="month" onclick="setView('month')"><span>Monthly</span></label>
+    </div>
+
+    <section class="card">
+      <h2>Exercise vs Rest Over Time</h2>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Total Workout Time</h2>
+      <div class="chart-wrap"><canvas id="totalChart"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Muscle Group Distribution</h2>
+      <div class="chart-wrap"><canvas id="muscleChart"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Number of Workouts</h2>
+      <div class="chart-wrap"><canvas id="workoutCountChart"></canvas></div>
+    </section>
   </div>
-
-  <h2>Exercise vs Rest Over Time</h2>
-  <canvas id="trendChart"></canvas>
-
-  <h2>Total Workout Time</h2>
-  <canvas id="totalChart"></canvas>
-
-  <h2>Muscle Group Distribution</h2>
-  <canvas id="muscleChart"></canvas>
-
-  <h2>Number of Workouts</h2>
-  <canvas id="workoutCountChart"></canvas>
 
 <script src="database.js"></script>
 <script src="app.js"></script>
@@ -83,7 +93,12 @@
 
   // --- INITIALIZATION ---
   document.addEventListener("DOMContentLoaded", async () => {
-	await window.AppReady;
+    try {
+        await window.AppReady;
+    } catch (err) {
+        // Stats come from local history; show them even if the exercise download failed
+        console.error("App initialization failed:", err);
+    }
 	
     if (typeof Chart === "undefined") {
         console.warn("Chart.js unavailable (offline)");
@@ -100,10 +115,17 @@
         return;
     }
 	
-    const username = "Bruno";
-    
     // Fetch aggregated data from our new JS logic
-    const data = await window.AppLogic.getAnalysisData(username);
+    const data = await window.AppLogic.getAnalysisData();
+
+    if (!data.trendLabels.length) {
+        document.getElementById("charts").style.display = "none";
+        document.getElementById("emptyMessage").style.display = "block";
+        return;
+    }
+
+    // Charts fill their .chart-wrap box so they fit a phone screen
+    Chart.defaults.maintainAspectRatio = false;
     
     trendLabels = data.trendLabels;
     trendExercise = data.trendExercise;

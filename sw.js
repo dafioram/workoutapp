@@ -1,7 +1,7 @@
 const APP_NAME = "workout";
 // Bump when APP_FILES changes. Edits to existing files don't need a bump:
 // they are picked up in the background and served on the next launch.
-const VER = "2"
+const VER = "3"
 
 const CACHE_NAME = APP_NAME + "-v" + VER
 
@@ -27,6 +27,8 @@ const APP_FILES = [
     `${basePath}/static/sounds/beep_short.mp3`,
     `${basePath}/static/sounds/beep_long.mp3`,
     `${basePath}/static/sounds/finish.mp3`,
+
+    `${basePath}/static/pages.css`,
 
     `${basePath}/static/vendor/chart-4.5.1.umd.min.js`,
     `${basePath}/static/vendor/mobile-drag-drop-2.3.0-rc.2.min.js`,

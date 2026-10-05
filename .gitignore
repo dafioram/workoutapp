@@ -12,3 +12,7 @@ venv/
 .env
 env/
 .DS_Store
+# Tests
+node_modules/
+test-results/
+playwright-report/

@@ -61,64 +61,6 @@ function formatTime(seconds) {
     return `${mins}m ${sec}s`;
 }
 
-// --- WORKOUT GENERATION ALGORITHM ---
-// This translates your exact python generation logic into JS
-function generateWorkoutAlgorithm(availableExercises, oldWorkout, numExercises, lockedIds) {
-    const combinedMap = {};
-    availableExercises.forEach(ex => combinedMap[ex.id] = ex);
-    oldWorkout.forEach(ex => combinedMap[ex.id] = ex);
-
-    let newWorkout = new Array(numExercises).fill(null);
-
-    // 1. Place Locked exercises using the old order
-    oldWorkout.forEach((ex, i) => {
-        if (i < numExercises && lockedIds.includes(parseInt(ex.id))) {
-            newWorkout[i] = combinedMap[ex.id];
-        }
-    });
-
-    // 2. Fill specific locked IDs that might have been lost in resizing
-    lockedIds.forEach(lid => {
-        const isAlreadyIn = newWorkout.some(item => item && parseInt(item.id) === lid);
-        if (!isAlreadyIn) {
-            const cand = combinedMap[lid];
-            if (cand) {
-                const emptyIdx = newWorkout.indexOf(null);
-                if (emptyIdx !== -1) {
-                    newWorkout[emptyIdx] = cand;
-                } else {
-                    newWorkout.push(cand);
-                }
-            }
-        }
-    });
-
-    // 3. Fill remaining slots
-    const usedIds = new Set(newWorkout.filter(ex => ex).map(ex => parseInt(ex.id)));
-    let pool = availableExercises.filter(e => !usedIds.has(parseInt(e.id)) && !lockedIds.includes(parseInt(e.id)));
-
-    // Shuffle pool to pick random elements (Fisher-Yates)
-    pool = pool.sort(() => 0.5 - Math.random());
-    
-    let slotsNeeded = newWorkout.filter(ex => ex === null).length;
-    let chosen = pool.slice(0, Math.min(pool.length, slotsNeeded));
-    
-    chosen.forEach(c => {
-        const idx = newWorkout.indexOf(null);
-        if (idx !== -1) newWorkout[idx] = c;
-    });
-
-    const nonLockedPool = availableExercises.filter(e => !lockedIds.includes(parseInt(e.id)));
-    while (newWorkout.includes(null) && nonLockedPool.length > 0) {
-        const idx = newWorkout.indexOf(null);
-        newWorkout[idx] = nonLockedPool[Math.floor(Math.random() * nonLockedPool.length)];
-    }
-
-    let finalWorkout = newWorkout.filter(x => x !== null);
-    return finalWorkout.slice(0, numExercises);
-}
-
-
 // --- ANALYSIS AGGREGATION LOGIC ---
 // Replaces the Python logic found in @app.route('/analysis')
 function getISOWeek(dateObj) {
@@ -130,8 +72,8 @@ function getISOWeek(dateObj) {
     return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
-async function getAnalysisData(username) {
-    const workouts = await window.DB.getWorkoutsForUser(username);
+async function getAnalysisData() {
+    const workouts = await window.DB.getWorkouts();
     const exerciseMap = await window.DB.getExerciseMap();
     
     // Sort asc for charts
@@ -221,6 +163,5 @@ window.AppLogic = {
     calculateTotalTime,
     formatTime,
     formatLocalDateTime,
-    generateWorkoutAlgorithm,
     getAnalysisData
 };

@@ -1,0 +1,11 @@
+{
+  "name": "workoutapp",
+  "private": true,
+  "description": "Body-weight circuit workout PWA (static site). Node is only used for tests.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
