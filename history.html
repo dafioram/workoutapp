@@ -95,8 +95,36 @@
         }
     }
 
+    // Load a past workout into the timer with the same settings
+    async function repeatWorkout(w) {
+        let library = {};
+        try {
+            library = await DB.getExerciseMap();
+        } catch (err) {
+            console.warn("Exercise library unavailable; using saved names", err);
+        }
+        // Prefer the current library entry (description, image); fall back to what was saved
+        const exercises = w.exercises
+            .slice()
+            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+            .map(ex => library[ex.id] || { id: ex.id, name: ex.name, muscle: ex.muscle });
+
+        AppLogic.Session.set("current_workout", exercises);
+        AppLogic.Session.set("num_sets", Number(w.num_sets));
+        AppLogic.Session.set("ex_duration", Number(w.exercise_duration));
+        AppLogic.Session.set("rest_duration", Number(w.rest_duration));
+        AppLogic.Session.set("set_rest", Number(w.set_rest));
+        AppLogic.Session.set("username", w.username);
+        location.href = "timer.html";
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
-		await window.AppReady
+        try {
+            await window.AppReady;
+        } catch (err) {
+            // History is local; show it even if the exercise download failed
+            console.error("App initialization failed:", err);
+        }
 		
         const username = "Bruno";
         document.getElementById("usernameDisplay").innerText = username;
@@ -125,6 +153,8 @@
                     Rest between exercises: ${w.rest_duration}s,
                     Rest between sets: ${(w.set_rest / 60).toFixed(1)} min<br>
                     <em>Total Time: ${AppLogic.formatTime(totalSecs)}</em>
+                    ${w.notes ? `<br><em>${w.notes}</em>` : ""}
+                    <br><button type="button" data-repeat="${w.id}">Repeat</button>
                     <ul>
                         ${w.exercises.map(ex => `<li>${ex.name} (ID: ${ex.id})</li>`).join('')}
                     </ul>
@@ -133,6 +163,13 @@
         });
         html += "</ul>";
         container.innerHTML = html;
+
+        container.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-repeat]");
+            if (!btn) return;
+            const w = workouts.find(w => String(w.id) === btn.dataset.repeat);
+            if (w) repeatWorkout(w);
+        });
     });
   </script>
 </body>

@@ -74,8 +74,20 @@ const dbPromise = new Promise((resolve, reject) => {
     request.onerror = (event) => reject(event.target.error);
 });
 
+// A fetch that gives up after `ms`, so a weak signal ("connected" but no
+// data getting through) can't leave the app waiting indefinitely.
+async function fetchWithTimeout(url, options = {}, ms = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 async function getRemoteExerciseVersion() {
-    const response = await fetch(EXERCISE_META_SOURCE, {
+    const response = await fetchWithTimeout(EXERCISE_META_SOURCE, {
         cache: "no-store"
     });
 
@@ -123,8 +135,19 @@ async function initDB() {
 		return;
 	}
 
-    // Existing database:
-    // app works even without internet
+    // Existing database: the app is ready now. Check for a newer exercise
+    // library in the background so pages never wait on the network.
+    checkForExerciseUpdate();
+}
+
+const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+async function checkForExerciseUpdate() {
+    // Moving between pages shouldn't re-check every time
+    const lastCheck = Number(sessionStorage.getItem("exerciseUpdateCheckedAt")) || 0;
+    if (Date.now() - lastCheck < UPDATE_CHECK_INTERVAL_MS) return;
+    sessionStorage.setItem("exerciseUpdateCheckedAt", String(Date.now()));
+
     try {
         const remoteVersion = await getRemoteExerciseVersion();
         const localVersion = await getSetting("exerciseVersion");
@@ -132,13 +155,11 @@ async function initDB() {
         if (remoteVersion !== localVersion) {
             await reloadExercises();
             await setSetting("exerciseVersion", remoteVersion);
+            window.dispatchEvent(new Event("exercises-updated"));
         }
-
-    } catch(err) {
-        console.warn(
-            "Skipping exercise update check. Offline mode.",
-            err
-        );
+    } catch (err) {
+        sessionStorage.removeItem("exerciseUpdateCheckedAt");
+        console.warn("Skipping exercise update check (offline or slow network).", err);
     }
 }
 
@@ -189,7 +210,7 @@ async function getAllExercises(workoutType = "any") {
 async function reloadExercises() {
     const db = await dbPromise;
 
-    const response = await fetch(EXERCISE_SOURCE);
+    const response = await fetchWithTimeout(EXERCISE_SOURCE, {}, 15000);
 
     if (!response.ok) {
         throw new Error("Failed to load exercises.json");

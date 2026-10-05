@@ -180,7 +180,7 @@
 
     async function reloadExercises() {
         try {
-            const response = await fetch(EXERCISE_SOURCE); // Ensure EXERCISE_SOURCE exists in app.js
+            const response = await fetchWithTimeout(EXERCISE_SOURCE, {}, 15000); // defined in database.js
             if (!response.ok) throw new Error("Failed to load exercises.json");
             
             const exercises = await response.json();
