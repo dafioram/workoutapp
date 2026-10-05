@@ -9,6 +9,40 @@ const EXERCISE_SOURCE =
 const EXERCISE_META_SOURCE =
     "https://dafioram.github.io/exercise-data/static/version.json";
 
+// Exercise image paths in the library are relative to the exercise-data site
+const EXERCISE_DATA_BASE = "https://dafioram.github.io/exercise-data/";
+
+// Workouts saved before this fix stored UTC time without the "Z", which
+// JS then read back as local time. Treat any timestamp without a zone as UTC.
+function parseTimestamp(ts) {
+    if (!ts) return new Date(NaN);
+    const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(ts);
+    return new Date(hasZone ? ts : ts + "Z");
+}
+
+function toStoredExercise(ex) {
+    return {
+        ...ex,
+        image: ex.image ? new URL(ex.image, EXERCISE_DATA_BASE).href : "",
+        active: ex.active !== false ? 1 : 0,
+        ab_workout: ex.ab_workout ? 1 : 0
+    };
+}
+
+// Ask the browser not to evict our data under storage pressure.
+// Safari can still clear data for sites not added to the home screen,
+// so export (history page) remains the real backup.
+async function requestPersistentStorage() {
+    if (!navigator.storage || !navigator.storage.persist) return false;
+    try {
+        if (await navigator.storage.persisted()) return true;
+        return await navigator.storage.persist();
+    } catch (err) {
+        console.warn("Persistent storage request failed", err);
+        return false;
+    }
+}
+
 const dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -61,6 +95,8 @@ async function getRemoteExerciseVersion() {
 // --- SEEDING LOGIC ---
 async function initDB() {
     const db = await dbPromise;
+
+    requestPersistentStorage();
 
     const count = await new Promise(resolve => {
         const tx = db.transaction("exercises");
@@ -120,11 +156,7 @@ async function replaceExercises(exercises) {
         };
 
         for (const ex of exercises) {
-            store.put({
-                ...ex,
-                active: ex.active !== false ? 1 : 0,
-                ab_workout: ex.ab_workout ? 1 : 0
-            });
+            store.put(toStoredExercise(ex));
         }
 
         tx.oncomplete = resolve;
@@ -185,11 +217,7 @@ async function reloadExercises() {
         };
 
         for (const ex of exercises) {
-            store.put({
-                ...ex,
-                active: ex.active !== false ? 1 : 0,
-                ab_workout: ex.ab_workout ? 1 : 0
-            });
+            store.put(toStoredExercise(ex));
         }
 
         tx.oncomplete = resolve;
@@ -231,8 +259,8 @@ async function getWorkoutsForUser(username) {
         
         request.onsuccess = () => {
             // Sort descending by timestamp like the SQL query
-            const workouts = request.result.sort((a, b) => 
-                new Date(b.timestamp) - new Date(a.timestamp)
+            const workouts = request.result.sort((a, b) =>
+                parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp)
             );
             resolve(workouts);
         };
@@ -291,7 +319,7 @@ async function insertWorkout(username, exercises, numSets, exDuration, restDurat
 
     const workoutData = {
         username,
-        timestamp: new Date().toISOString().split('.')[0],
+        timestamp: new Date().toISOString(),
         num_sets: Number(numSets),
         exercise_duration: Number(exDuration),
         rest_duration: Number(restDuration),
@@ -327,6 +355,51 @@ async function insertWorkout(username, exercises, numSets, exDuration, restDurat
     });
 }
 
+// --- BACKUP ---
+async function getAllWorkouts() {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("workouts", "readonly");
+        const request = tx.objectStore("workouts").getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Adds workouts from a backup, skipping any already stored
+// (same user and same time). Returns { added, skipped }.
+async function importWorkouts(workouts) {
+    const keyOf = (w) => `${w.username}|${parseTimestamp(w.timestamp).getTime()}`;
+    const existing = new Set((await getAllWorkouts()).map(keyOf));
+
+    const toAdd = [];
+    let skipped = 0;
+    for (const w of workouts) {
+        const valid = w && typeof w.timestamp === "string"
+            && !isNaN(parseTimestamp(w.timestamp))
+            && Array.isArray(w.exercises);
+        if (!valid || existing.has(keyOf(w))) {
+            skipped++;
+            continue;
+        }
+        existing.add(keyOf(w));
+        const { id, ...rest } = w;
+        toAdd.push(rest);
+    }
+
+    const db = await dbPromise;
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction("workouts", "readwrite");
+        const store = tx.objectStore("workouts");
+        toAdd.forEach(w => store.add(w));
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+    });
+
+    return { added: toAdd.length, skipped };
+}
+
 // Export for other scripts (if using ES modules, otherwise these are global)
 window.DB = {
     initDB,
@@ -340,5 +413,9 @@ window.DB = {
     insertWorkout,
     getSetting,
     setSetting,
-	getDBStatus
+	getDBStatus,
+    parseTimestamp,
+    getAllWorkouts,
+    importWorkouts,
+    requestPersistentStorage
 };

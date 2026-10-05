@@ -7,10 +7,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="static/icons/icon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <h1>Workout History for <span id="usernameDisplay"></span></h1>
   
+  <section>
+    <h2>Backup</h2>
+    <p>
+      Your history is stored only on this device. Export a backup now and then
+      (and add the app to your home screen) so it isn't lost if the browser clears its data.
+    </p>
+    <button type="button" onclick="exportHistory()">Export history</button>
+    <button type="button" onclick="document.getElementById('importFile').click()">Import backup</button>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importHistory(this)">
+    <p id="backupStatus"></p>
+  </section>
+
   <div id="historyContainer">
       <p>Loading history...</p>
   </div>
@@ -20,6 +33,68 @@
 <script src="database.js"></script>
 <script src="app.js"></script>
   <script>
+    function setBackupStatus(msg) {
+        document.getElementById("backupStatus").textContent = msg;
+    }
+
+    async function exportHistory() {
+        try {
+            const workouts = await DB.getAllWorkouts();
+            const backup = {
+                app: "workoutapp",
+                format: 1,
+                exported: new Date().toISOString(),
+                workouts
+            };
+            const filename = `workout_log_${new Date().toISOString().slice(0, 10)}.json`;
+            const file = new File([JSON.stringify(backup, null, 2)], filename, { type: "application/json" });
+
+            // iOS home-screen apps can't download files; the share sheet
+            // offers "Save to Files", email, etc. instead.
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file], title: "Workout history backup" });
+                    setBackupStatus(`Exported ${workouts.length} workouts.`);
+                } catch (err) {
+                    if (err.name !== "AbortError") throw err;
+                }
+                return;
+            }
+
+            const url = URL.createObjectURL(file);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setBackupStatus(`Exported ${workouts.length} workouts.`);
+        } catch (err) {
+            console.error("Export failed:", err);
+            setBackupStatus("Export failed.");
+        }
+    }
+
+    async function importHistory(input) {
+        const file = input.files[0];
+        input.value = "";
+        if (!file) return;
+
+        try {
+            const data = JSON.parse(await file.text());
+            const workouts = Array.isArray(data) ? data : data.workouts;
+            if (!Array.isArray(workouts)) throw new Error("No workouts in file");
+
+            const { added, skipped } = await DB.importWorkouts(workouts);
+            setBackupStatus(`Imported ${added} workouts` + (skipped ? ` (${skipped} already here or invalid).` : "."));
+            if (added) setTimeout(() => location.reload(), 1200);
+        } catch (err) {
+            console.error("Import failed:", err);
+            setBackupStatus("Import failed: not a valid backup file.");
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
 		await window.AppReady
 		
@@ -44,7 +119,7 @@
             
             html += `
                 <li>
-                    <strong>${w.timestamp.replace('T', ' ')}</strong><br>
+                    <strong>${AppLogic.formatLocalDateTime(DB.parseTimestamp(w.timestamp))}</strong><br>
                     Sets: ${w.num_sets},
                     Exercise Duration: ${w.exercise_duration}s,
                     Rest between exercises: ${w.rest_duration}s,
