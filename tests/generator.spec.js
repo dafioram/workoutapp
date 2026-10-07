@@ -23,6 +23,41 @@ test('Core Only picks exactly the ab_workout exercises', async ({ page }) => {
   expect(new Set(picked)).toEqual(new Set(core));
 });
 
+test('TV Friendly picks only tv_friendly exercises, and all of them', async ({ page }) => {
+  await page.check('input[value=tv]');
+  await setInput(page, 'num_exercises', 100);
+  await page.click('#generateBtn');
+
+  const { picked, tv } = await page.evaluate(async () => ({
+    picked: currentWorkout.map((e) => e.id),
+    tv: (await DB.getAllExercises('tv')).map((e) => e.id),
+  }));
+  expect(tv.length).toBeGreaterThan(20);
+  expect(new Set(picked)).toEqual(new Set(tv));
+});
+
+test('TV Friendly keeps face-down and crawling exercises out, and standing ones in', async ({ page }) => {
+  await page.check('input[value=tv]');
+  await setInput(page, 'num_exercises', 100);
+  await page.click('#generateBtn');
+  const names = await page.evaluate(() => currentWorkout.map((e) => e.name));
+
+  for (const out of ['Push Ups', 'Bear Crawl', 'Burpee No Jump', 'Supermans', 'Bird Dog', 'Sprawl']) {
+    expect(names, `${out} should not be TV friendly`).not.toContain(out);
+  }
+  for (const inn of ['Squats', 'Plank', 'Standing Cross Crunch', 'Bridges', 'Side Planks', 'Jumping Jacks']) {
+    expect(names, `${inn} should be TV friendly`).toContain(inn);
+  }
+});
+
+test('TV Friendly is remembered after a reload', async ({ page }) => {
+  await page.check('input[value=tv]');
+  await page.waitForTimeout(200);
+  await page.reload();
+  await waitForGenerator(page);
+  await expect(page.locator('input[name=workout_type][value=tv]')).toBeChecked();
+});
+
 test('rests of 0 stay 0 in the total and the timer', async ({ page }) => {
   await setInput(page, 'num_exercises', 3);
   await setInput(page, 'num_sets', 2);
