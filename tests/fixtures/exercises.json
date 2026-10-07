@@ -395,7 +395,7 @@
     "body_weight": true,
     "active": true,
     "ab_workout": true,
-    "tv_friendly": true,
+    "tv_friendly": false,
     "image": "",
     "link": ""
   },
@@ -1205,7 +1205,7 @@
     "body_weight": true,
     "active": true,
     "ab_workout": false,
-    "tv_friendly": false,
+    "tv_friendly": true,
     "image": "",
     "link": ""
   },
