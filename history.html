@@ -93,6 +93,27 @@
         }
     }
 
+    async function deleteOne(w, workouts) {
+        const when = AppLogic.formatLocalDateTime(DB.parseTimestamp(w.timestamp));
+        if (!confirm(`Delete the workout from ${when}? This can't be undone.`)) return;
+
+        try {
+            await DB.deleteWorkout(w.id);
+        } catch (err) {
+            console.error("Delete failed:", err);
+            alert("Couldn't delete the workout.");
+            return;
+        }
+        workouts.splice(workouts.indexOf(w), 1);
+        document.querySelector(`[data-card="${w.id}"]`)?.remove();
+        if (!workouts.length) showEmptyHistory();
+    }
+
+    function showEmptyHistory() {
+        document.getElementById("historyContainer").innerHTML =
+            `<p class="card muted" style="text-align:center;">No workouts saved yet.</p>`;
+    }
+
     async function exportOne(w, btn) {
         try {
             const result = await AppLogic.exportWorkout(w);
@@ -137,7 +158,7 @@
         const workouts = await window.DB.getWorkouts();
 
         if (!workouts || workouts.length === 0) {
-            container.innerHTML = `<p class="card muted" style="text-align:center;">No workouts saved yet.</p>`;
+            showEmptyHistory();
             return;
         }
 
@@ -146,20 +167,22 @@
             const totalSecs = AppLogic.calculateTotalTime(
                 w.exercises.length, w.num_sets, w.exercise_duration, w.rest_duration, w.set_rest
             );
+            const when = AppLogic.formatLocalDateTime(DB.parseTimestamp(w.timestamp)).split(" ");
             const exercises = w.exercises
                 .slice()
                 .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
             html += `
-                <article class="card">
+                <article class="card" data-card="${w.id}">
                     <div class="workout-head">
                         <div>
-                            <strong>${AppLogic.formatLocalDateTime(DB.parseTimestamp(w.timestamp))}</strong>
+                            <strong>${when.map(part => `<span class="nowrap">${part}</span>`).join(" ")}</strong>
                             <span class="muted">${AppLogic.formatTime(totalSecs)} total</span>
                         </div>
                         <div class="card-actions">
                             <button type="button" class="btn" data-repeat="${w.id}">Repeat</button>
                             <button type="button" class="btn secondary" data-export="${w.id}">Export</button>
+                            <button type="button" class="btn danger icon" data-delete="${w.id}" aria-label="Delete workout" title="Delete workout">✕</button>
                         </div>
                     </div>
                     ${w.notes ? `<span class="note">${w.notes}</span>` : ""}
@@ -178,13 +201,14 @@
         container.innerHTML = html;
 
         container.addEventListener("click", (e) => {
-            const btn = e.target.closest("[data-repeat], [data-export]");
+            const btn = e.target.closest("[data-repeat], [data-export], [data-delete]");
             if (!btn) return;
-            const id = btn.dataset.repeat ?? btn.dataset.export;
+            const id = btn.dataset.repeat ?? btn.dataset.export ?? btn.dataset.delete;
             const w = workouts.find(w => String(w.id) === id);
             if (!w) return;
             if (btn.dataset.repeat) repeatWorkout(w);
-            else exportOne(w, btn);
+            else if (btn.dataset.export) exportOne(w, btn);
+            else deleteOne(w, workouts);
         });
     });
   </script>

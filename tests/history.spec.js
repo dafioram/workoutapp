@@ -73,6 +73,66 @@ test('Repeat loads the same workout and settings into the timer', async ({ page 
   });
 });
 
+test('a workout is deleted after confirming, and only that one', async ({ page }) => {
+  await page.goto('history.html');
+  await addWorkouts(page, [
+    workoutRecord({ timestamp: '2026-10-06T12:30:00.000Z' }),
+    workoutRecord({ timestamp: '2026-10-05T12:30:00.000Z' }),
+    workoutRecord({ timestamp: '2026-10-04T12:30:00.000Z' }),
+  ]);
+  await page.reload();
+  const cards = page.locator('#historyContainer article');
+  await expect(cards).toHaveCount(3);
+
+  // Newest first: delete the middle one (2026-10-05 08:30 local)
+  const dialog = page.waitForEvent('dialog');
+  const click = cards.nth(1).locator('[data-delete]').click();
+  const d = await dialog;
+  expect(d.type()).toBe('confirm');
+  expect(d.message()).toBe("Delete the workout from 2026-10-05 08:30? This can't be undone.");
+  await d.accept();
+  await click;
+
+  await expect(cards).toHaveCount(2);
+  await expect(page.locator('#historyContainer')).not.toContainText('2026-10-05');
+  const left = await page.evaluate(async () => (await DB.getWorkouts()).map((w) => w.timestamp));
+  expect(left).toEqual(['2026-10-06T12:30:00.000Z', '2026-10-04T12:30:00.000Z']);
+
+  // Still gone after a reload
+  await page.reload();
+  await expect(cards).toHaveCount(2);
+});
+
+test('cancelling the confirmation keeps the workout', async ({ page }) => {
+  await page.goto('history.html');
+  await addWorkouts(page, [workoutRecord()]);
+  await page.reload();
+
+  page.once('dialog', (d) => d.dismiss());
+  await page.click('[data-delete]');
+  await page.waitForTimeout(300);
+  await expect(page.locator('#historyContainer article')).toHaveCount(1);
+  expect(await page.evaluate(async () => (await DB.getWorkouts()).length)).toBe(1);
+});
+
+test('deleting the last workout shows the empty message', async ({ page }) => {
+  await page.goto('history.html');
+  await addWorkouts(page, [workoutRecord()]);
+  await page.reload();
+
+  page.once('dialog', (d) => d.accept());
+  await page.click('[data-delete]');
+  await expect(page.locator('#historyContainer')).toContainText('No workouts saved yet');
+  await expect(page.locator('#historyContainer article')).toHaveCount(0);
+});
+
+test('the delete button has an accessible name', async ({ page }) => {
+  await page.goto('history.html');
+  await addWorkouts(page, [workoutRecord()]);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Delete workout' })).toBeVisible();
+});
+
 test('analysis shows local, oldest-first trend labels', async ({ page }) => {
   await page.goto('analysis.html');
   await addWorkouts(page, [
