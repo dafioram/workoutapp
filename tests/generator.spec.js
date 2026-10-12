@@ -62,6 +62,30 @@ test('TV Friendly keeps face-down and crawling exercises out, and standing ones 
   }
 });
 
+test('Mobility Exercises picks exactly the is_mobility exercises', async ({ page }) => {
+  await page.check('input[value=mobility]');
+  await setInput(page, 'num_exercises', 100);
+  await page.click('#generateBtn');
+
+  const { picked, mobility } = await page.evaluate(async () => ({
+    picked: currentWorkout.map((e) => e.id),
+    mobility: (await DB.getAllExercises('mobility')).map((e) => e.id),
+  }));
+  expect(mobility).toHaveLength(11);
+  expect(new Set(picked)).toEqual(new Set(mobility));
+  const names = await page.evaluate(() => currentWorkout.map((e) => e.name));
+  expect(names).toContain('Worlds Greatest Stretch');
+  expect(names).not.toContain('Push Ups');
+});
+
+test('Mobility Exercises is remembered after a reload', async ({ page }) => {
+  await page.check('input[value=mobility]');
+  await page.waitForTimeout(200);
+  await page.reload();
+  await waitForGenerator(page);
+  await expect(page.locator('input[name=workout_type][value=mobility]')).toBeChecked();
+});
+
 test('TV Friendly is remembered after a reload', async ({ page }) => {
   await page.check('input[value=tv]');
   await page.waitForTimeout(200);

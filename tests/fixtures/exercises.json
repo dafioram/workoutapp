@@ -13,6 +13,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -30,6 +31,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -47,6 +49,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -64,6 +67,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -81,6 +85,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -98,6 +103,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -115,6 +121,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -132,6 +139,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -149,6 +157,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -166,6 +175,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -183,6 +193,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -200,6 +211,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -217,6 +229,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -234,6 +247,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": "https://www.youtube.com/watch?v=nLNqEQ4B6XI"
   },
@@ -252,6 +266,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -270,6 +285,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -288,6 +304,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -306,6 +323,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -324,6 +342,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -342,6 +361,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -360,6 +380,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -378,6 +399,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -396,6 +418,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -414,6 +437,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -432,6 +456,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -450,6 +475,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -468,6 +494,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -486,6 +513,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -504,6 +532,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -522,6 +551,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -540,6 +570,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -558,6 +589,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -576,6 +608,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -594,6 +627,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -612,6 +646,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -630,6 +665,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -648,6 +684,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -666,6 +703,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -684,6 +722,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -702,6 +741,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -720,6 +760,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -738,6 +779,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -756,6 +798,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -774,6 +817,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -792,6 +836,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -810,6 +855,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -828,6 +874,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -846,6 +893,7 @@
     "active": false,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -864,6 +912,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -882,6 +931,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -900,6 +950,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -918,6 +969,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -936,6 +988,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -954,6 +1007,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -972,6 +1026,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -990,6 +1045,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1008,6 +1064,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1026,6 +1083,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1044,6 +1102,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1062,6 +1121,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": true,
     "image": "",
     "link": ""
   },
@@ -1080,6 +1140,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1098,6 +1159,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1116,6 +1178,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1134,6 +1197,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1152,6 +1216,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1170,6 +1235,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1188,6 +1254,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1206,6 +1273,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1224,6 +1292,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1242,6 +1311,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1260,6 +1330,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1278,6 +1349,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1296,6 +1368,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1314,6 +1387,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1332,6 +1406,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": false,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1350,6 +1425,7 @@
     "active": true,
     "ab_workout": false,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1368,6 +1444,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   },
@@ -1386,6 +1463,7 @@
     "active": true,
     "ab_workout": true,
     "tv_friendly": true,
+    "is_mobility": false,
     "image": "",
     "link": ""
   }

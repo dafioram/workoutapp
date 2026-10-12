@@ -226,6 +226,7 @@
       <label><input type="radio" name="workout_type" value="core"> Core Only</label>
       <label><input type="radio" name="workout_type" value="cardio"> Cardio Only</label>
       <label><input type="radio" name="workout_type" value="tv"> <span>TV Friendly<br><small style="color: #666;">No face-down or turning away</small></span></label>
+      <label><input type="radio" name="workout_type" value="mobility"> Mobility Exercises</label>
     </fieldset>
 
     <div class="button-group">
@@ -423,6 +424,9 @@
 	  let pool = ALL_EXERCISES.filter(ex => {
 		if (workoutType === 'core') {
 		  return ex.ab_workout === 1; // stored as 1/0 in IndexedDB
+		}
+		if (workoutType === 'mobility') {
+		  return ex.is_mobility === 1; // stored as 1/0 in IndexedDB
 		}
 		if (workoutType === 'tv') {
 		  return ex.tv_friendly === 1; // stored as 1/0 in IndexedDB
