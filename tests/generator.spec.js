@@ -71,10 +71,11 @@ test('Mobility Exercises picks exactly the is_mobility exercises', async ({ page
     picked: currentWorkout.map((e) => e.id),
     mobility: (await DB.getAllExercises('mobility')).map((e) => e.id),
   }));
-  expect(mobility).toHaveLength(11);
+  expect(mobility).toHaveLength(18);
   expect(new Set(picked)).toEqual(new Set(mobility));
   const names = await page.evaluate(() => currentWorkout.map((e) => e.name));
   expect(names).toContain('Worlds Greatest Stretch');
+  expect(mobility).toContain(179); // 90/90 Hip Switch, added in exercise-data 179-185
   expect(names).not.toContain('Push Ups');
 });
 
