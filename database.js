@@ -26,7 +26,8 @@ function toStoredExercise(ex) {
         image: ex.image ? new URL(ex.image, EXERCISE_DATA_BASE).href : "",
         active: ex.active !== false ? 1 : 0,
         ab_workout: ex.ab_workout ? 1 : 0,
-        tv_friendly: ex.tv_friendly ? 1 : 0
+        tv_friendly: ex.tv_friendly ? 1 : 0,
+        is_mobility: ex.is_mobility ? 1 : 0
     };
 }
 
@@ -224,6 +225,8 @@ async function getAllExercises(workoutType = "any") {
             
             if (workoutType === "core") {
                 exercises = exercises.filter(ex => ex.ab_workout === 1);
+            } else if (workoutType === "mobility") {
+                exercises = exercises.filter(ex => ex.is_mobility === 1);
             } else if (workoutType === "tv") {
                 exercises = exercises.filter(ex => ex.tv_friendly === 1);
             } else if (workoutType === "cardio") {
