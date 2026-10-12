@@ -87,7 +87,8 @@ h2 { font-size: 1.15rem; margin: 0 0 10px; }
   gap: 10px;
 }
 .workout-head strong { display: block; font-size: 1.05rem; }
-.workout-head .btn { padding: 8px 14px; flex-shrink: 0; }
+.workout-head .btn { padding: 8px 14px; }
+.card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .workout-stats { margin: 6px 0; }
 .note {
   display: inline-block;

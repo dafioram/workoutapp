@@ -94,9 +94,14 @@
       background: var(--card-bg);
       position: relative;
       user-select: none;
+      -webkit-user-select: none; /* Safari ignores the unprefixed property */
+      -webkit-touch-callout: none; /* no copy/lookup menu on long press */
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       touch-action: none;
     }
+    /* When the drag helper is forced on (iPad), stop Safari's own drag from
+       competing with it */
+    .dnd-polyfill-forced .exercise-card { -webkit-user-drag: none; }
     .exercise-card.dragging { 
       opacity: 0.5; 
       border: 2px dashed #666; 
@@ -241,7 +246,6 @@
       </button>
     
       <div id="activeWorkoutButtons" style="display: none;">
-        <button type="button" onclick="saveWorkout()" style="background: #ff9800;">Save Workout</button>
         <button type="button" onclick="startTimer()">Start Timer</button>
       </div>
     </div>
@@ -269,7 +273,14 @@
   <script src="app.js"></script>
 
   <script>
-    if (window.MobileDragDrop) MobileDragDrop.polyfill({ holdToDrag: 150 });
+    // iPads have reported themselves as a Mac since iPadOS 13, so the drag
+    // helper's own iPad check misses them and Safari's built-in drag (which
+    // never reorders the cards) runs instead. Force the helper on for them.
+    const isIPadOS = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+    if (window.MobileDragDrop) {
+      MobileDragDrop.polyfill({ holdToDrag: 150, forceApply: isIPadOS });
+      if (isIPadOS) document.documentElement.classList.add("dnd-polyfill-forced");
+    }
     window.addEventListener('touchmove', function() {}, {passive: false});
 
     let ALL_EXERCISES = [];
@@ -482,6 +493,12 @@
       dragged = null;
       syncOrderFromDOM();
     });
+    // Accept the drag on entering the list. The touch drag helper (Android,
+    // iPad) only sends dragover to an element whose dragenter was accepted;
+    // without this, dragover goes to <body> and the cards never swap.
+    sortableEl.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+    });
     sortableEl.addEventListener("dragover", (e) => {
       e.preventDefault();
       const target = e.target.closest(".exercise-card");
@@ -513,27 +530,6 @@
         }
 
         document.getElementById("generateBtn").disabled = ALL_EXERCISES.length === 0;
-    }
-
-    async function saveWorkout() {
-      syncOrderFromDOM();
-      
-      if (!currentWorkout.length) {
-          showToast("Generate a workout first.", "error");
-          return;
-      }
-      
-      try {
-        const { numSets, exDuration, restDuration, setRest } = readSettings();
-
-        if (window.DB && window.DB.insertWorkout) {
-          await window.DB.insertWorkout(currentWorkout, numSets, exDuration, restDuration, setRest);
-          showToast("Workout saved.");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast("Failed to save workout.", "error");
-      }
     }
 
     function startTimer() {

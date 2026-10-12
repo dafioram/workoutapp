@@ -146,6 +146,161 @@ async function getAnalysisData() {
     };
 }
 
+// --- WORKOUT FILES (export / import) ---
+// One format for a single workout and for a full backup:
+//   {
+//     "app": "workoutapp",
+//     "version": 2,
+//     "kind": "workout" | "backup",
+//     "exported": "<ISO time>",
+//     "workouts": [{
+//       "timestamp": "<ISO time with zone>",
+//       "num_sets": 3, "exercise_duration": 40, "rest_duration": 20, "set_rest": 60,
+//       "location": "home", "rpe": 5, "notes": "",
+//       "exercises": [{ "id": 102, "name": "Squats", "muscle": "quads", "order_index": 0 }]
+//     }]
+//   }
+// Older files are upgraded on import:
+//   version 1 - backups from before this format: {"format": 1, "workouts": [...]},
+//               or a bare list of workouts. May carry a "username" and
+//               timestamps without a time zone (which were UTC).
+// When the format changes, bump WORKOUT_FILE_VERSION and add a step to
+// WORKOUT_FILE_UPGRADES that turns the previous version into the new one.
+const WORKOUT_FILE_VERSION = 2;
+
+const WORKOUT_FILE_UPGRADES = {
+  // 1 -> 2
+  1: (w) => {
+    if (!w || typeof w !== "object") return w;
+    const { username, id, ...rest } = w;
+    return rest;
+  },
+};
+
+function workoutFile(workouts, kind) {
+  return {
+    app: "workoutapp",
+    version: WORKOUT_FILE_VERSION,
+    kind,
+    exported: new Date().toISOString(),
+    workouts: workouts.map(({ id, username, ...w }) => w),
+  };
+}
+
+// Checks one workout from a file and returns it in the stored shape,
+// or null if it can't be recorded correctly.
+function cleanImportedWorkout(w) {
+  if (!w || typeof w !== "object") return null;
+  if (typeof w.timestamp !== "string") return null;
+  const when = window.DB.parseTimestamp(w.timestamp);
+  if (isNaN(when)) return null;
+
+  const numSets = Number(w.num_sets);
+  const exDuration = Number(w.exercise_duration);
+  const restDuration = Number(w.rest_duration ?? 0);
+  const setRest = Number(w.set_rest ?? 0);
+  if (!Number.isInteger(numSets) || numSets < 1) return null;
+  if (!(exDuration > 0) || !(restDuration >= 0) || !(setRest >= 0)) return null;
+
+  if (!Array.isArray(w.exercises) || w.exercises.length === 0) return null;
+  const exercises = [];
+  for (const [idx, ex] of w.exercises.entries()) {
+    if (!ex || typeof ex.name !== "string" || !ex.name.trim()) return null;
+    const id = Number(ex.id);
+    if (!Number.isFinite(id)) return null;
+    exercises.push({
+      id,
+      name: ex.name,
+      muscle: typeof ex.muscle === "string" && ex.muscle ? ex.muscle : "Other",
+      order_index: Number.isInteger(ex.order_index) ? ex.order_index : idx,
+    });
+  }
+  exercises.sort((a, b) => a.order_index - b.order_index);
+
+  return {
+    timestamp: when.toISOString(),
+    num_sets: numSets,
+    exercise_duration: exDuration,
+    rest_duration: restDuration,
+    set_rest: setRest,
+    location: typeof w.location === "string" ? w.location : "home",
+    rpe: Number.isFinite(Number(w.rpe)) ? Number(w.rpe) : 5,
+    notes: typeof w.notes === "string" ? w.notes : "",
+    exercises,
+  };
+}
+
+// Reads a parsed JSON file. Returns { workouts, invalid } or throws an Error
+// with a message suitable for showing to the user.
+function readWorkoutFile(data) {
+  let version;
+  let workouts;
+  if (Array.isArray(data)) {
+    version = 1;
+    workouts = data;
+  } else if (data && typeof data === "object" && Array.isArray(data.workouts)) {
+    version = data.version ?? data.format ?? 1;
+    workouts = data.workouts;
+  } else {
+    throw new Error("This isn't a workout file.");
+  }
+
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error("This isn't a workout file.");
+  }
+  if (version > WORKOUT_FILE_VERSION) {
+    throw new Error("This file is from a newer version of the app. Update the app and try again.");
+  }
+
+  for (let v = version; v < WORKOUT_FILE_VERSION; v++) {
+    workouts = workouts.map(WORKOUT_FILE_UPGRADES[v]);
+  }
+
+  const cleaned = workouts.map(cleanImportedWorkout);
+  return {
+    workouts: cleaned.filter(Boolean),
+    invalid: cleaned.filter((w) => !w).length,
+  };
+}
+
+// Saves a JSON file: the share sheet where it can take files (iPhone/iPad,
+// whose home-screen apps can't download), otherwise a download.
+// Returns "shared", "downloaded" or "cancelled".
+async function saveJsonFile(data, filename, title) {
+  const file = new File([JSON.stringify(data, null, 2)], filename, { type: "application/json" });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title });
+      return "shared";
+    } catch (err) {
+      if (err.name === "AbortError") return "cancelled";
+      throw err;
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return "downloaded";
+}
+
+// e.g. workout_2026-10-12_1830.json, in local time
+function workoutFilename(workout) {
+  const stamp = formatLocalDateTime(window.DB.parseTimestamp(workout.timestamp))
+    .replace(" ", "_").replace(":", "");
+  return `workout_${stamp}.json`;
+}
+
+async function exportWorkout(workout) {
+  return saveJsonFile(workoutFile([workout], "workout"), workoutFilename(workout), "Workout");
+}
+
 const WORKOUT_START_DELAY = 7;
 
 window.AppReady = (async () => {
@@ -163,5 +318,9 @@ window.AppLogic = {
     calculateTotalTime,
     formatTime,
     formatLocalDateTime,
-    getAnalysisData
+    getAnalysisData,
+    workoutFile,
+    readWorkoutFile,
+    saveJsonFile,
+    exportWorkout
 };

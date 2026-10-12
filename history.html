@@ -24,14 +24,17 @@
   </div>
 
   <section class="card">
-    <h2>Backup</h2>
+    <h2>Backup &amp; import</h2>
     <p class="muted">
       Your history is stored only on this device. Export a backup now and then
       (and add the app to your home screen) so it isn't lost if the browser clears its data.
     </p>
+    <p class="muted">
+      Import takes a backup, or a single workout exported from another device.
+    </p>
     <div class="btn-row">
       <button type="button" class="btn" onclick="exportHistory()">Export history</button>
-      <button type="button" class="btn secondary" onclick="document.getElementById('importFile').click()">Import backup</button>
+      <button type="button" class="btn secondary" onclick="document.getElementById('importFile').click()">Import</button>
     </div>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importHistory(this)">
     <p id="backupStatus" class="muted"></p>
@@ -44,61 +47,59 @@
         document.getElementById("backupStatus").textContent = msg;
     }
 
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
     async function exportHistory() {
         try {
-            const workouts = await DB.getAllWorkouts();
-            const backup = {
-                app: "workoutapp",
-                format: 1,
-                exported: new Date().toISOString(),
-                workouts
-            };
+            const workouts = await DB.getWorkouts();
             const filename = `workout_log_${new Date().toISOString().slice(0, 10)}.json`;
-            const file = new File([JSON.stringify(backup, null, 2)], filename, { type: "application/json" });
-
-            // iOS home-screen apps can't download files; the share sheet
-            // offers "Save to Files", email, etc. instead.
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({ files: [file], title: "Workout history backup" });
-                    setBackupStatus(`Exported ${workouts.length} workouts.`);
-                } catch (err) {
-                    if (err.name !== "AbortError") throw err;
-                }
-                return;
-            }
-
-            const url = URL.createObjectURL(file);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            setBackupStatus(`Exported ${workouts.length} workouts.`);
+            const result = await AppLogic.saveJsonFile(
+                AppLogic.workoutFile(workouts, "backup"), filename, "Workout history backup");
+            if (result !== "cancelled") setBackupStatus(`Exported ${plural(workouts.length, "workout")}.`);
         } catch (err) {
             console.error("Export failed:", err);
             setBackupStatus("Export failed.");
         }
     }
 
+    // Takes a full backup or a single exported workout, from this or an
+    // older version of the app
     async function importHistory(input) {
         const file = input.files[0];
         input.value = "";
         if (!file) return;
 
+        let parsed;
         try {
-            const data = JSON.parse(await file.text());
-            const workouts = Array.isArray(data) ? data : data.workouts;
-            if (!Array.isArray(workouts)) throw new Error("No workouts in file");
+            parsed = AppLogic.readWorkoutFile(JSON.parse(await file.text()));
+        } catch (err) {
+            console.error("Import failed:", err);
+            setBackupStatus(err instanceof SyntaxError
+                ? "Import failed. This isn't a workout file."
+                : `Import failed. ${err.message}`);
+            return;
+        }
 
-            const { added, skipped } = await DB.importWorkouts(workouts);
-            setBackupStatus(`Imported ${added} workouts` + (skipped ? ` (${skipped} already here or invalid).` : "."));
+        try {
+            const { added, skipped } = await DB.importWorkouts(parsed.workouts);
+            const notes = [];
+            if (skipped) notes.push(`${skipped} already here`);
+            if (parsed.invalid) notes.push(`${parsed.invalid} couldn't be read`);
+            setBackupStatus(`Imported ${plural(added, "workout")}` + (notes.length ? ` (${notes.join(", ")}).` : "."));
             if (added) setTimeout(() => location.reload(), 1200);
         } catch (err) {
             console.error("Import failed:", err);
-            setBackupStatus("Import failed: not a valid backup file.");
+            setBackupStatus("Import failed.");
+        }
+    }
+
+    async function exportOne(w, btn) {
+        try {
+            const result = await AppLogic.exportWorkout(w);
+            if (result !== "cancelled") btn.textContent = "Exported ✓";
+        } catch (err) {
+            console.error("Export failed:", err);
+            btn.textContent = "Export failed";
         }
     }
 
@@ -156,7 +157,10 @@
                             <strong>${AppLogic.formatLocalDateTime(DB.parseTimestamp(w.timestamp))}</strong>
                             <span class="muted">${AppLogic.formatTime(totalSecs)} total</span>
                         </div>
-                        <button type="button" class="btn" data-repeat="${w.id}">Repeat</button>
+                        <div class="card-actions">
+                            <button type="button" class="btn" data-repeat="${w.id}">Repeat</button>
+                            <button type="button" class="btn secondary" data-export="${w.id}">Export</button>
+                        </div>
                     </div>
                     ${w.notes ? `<span class="note">${w.notes}</span>` : ""}
                     <div class="workout-stats muted">
@@ -174,10 +178,13 @@
         container.innerHTML = html;
 
         container.addEventListener("click", (e) => {
-            const btn = e.target.closest("[data-repeat]");
+            const btn = e.target.closest("[data-repeat], [data-export]");
             if (!btn) return;
-            const w = workouts.find(w => String(w.id) === btn.dataset.repeat);
-            if (w) repeatWorkout(w);
+            const id = btn.dataset.repeat ?? btn.dataset.export;
+            const w = workouts.find(w => String(w.id) === id);
+            if (!w) return;
+            if (btn.dataset.repeat) repeatWorkout(w);
+            else exportOne(w, btn);
         });
     });
   </script>

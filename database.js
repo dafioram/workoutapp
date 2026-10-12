@@ -1,7 +1,7 @@
 // database.js
 
 const DB_NAME = "WorkoutAppDB";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const EXERCISE_SOURCE =
     "https://dafioram.github.io/exercise-data/static/exercises.json";
@@ -61,7 +61,6 @@ const dbPromise = new Promise((resolve, reject) => {
         // 2. Store: Workouts (We don't need a junction table in IndexedDB!)
         if (!db.objectStoreNames.contains("workouts")) {
             const wkStore = db.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
-            wkStore.createIndex("username", "username", { unique: false });
             wkStore.createIndex("timestamp", "timestamp", { unique: false });
         }
 		
@@ -69,9 +68,32 @@ const dbPromise = new Promise((resolve, reject) => {
 		if (!db.objectStoreNames.contains("settings")) {
 			db.createObjectStore("settings", { keyPath: "key" });
 		}
+
+        // v4: the app no longer has users. Drop the username index and the
+        // username stored on older workouts (from the multi-user server version).
+        if (event.oldVersion > 0 && event.oldVersion < 4) {
+            const wkStore = event.target.transaction.objectStore("workouts");
+            if (wkStore.indexNames.contains("username")) {
+                wkStore.deleteIndex("username");
+            }
+            wkStore.openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (!cursor) return;
+                if ("username" in cursor.value) {
+                    const { username, ...rest } = cursor.value;
+                    cursor.update(rest);
+                }
+                cursor.continue();
+            };
+        }
     };
 
-    request.onsuccess = (event) => resolve(event.target.result);
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        // Let a newer version of the app (e.g. in another tab) upgrade the database
+        db.onversionchange = () => db.close();
+        resolve(db);
+    };
     request.onerror = (event) => reject(event.target.error);
 });
 
@@ -312,17 +334,15 @@ async function insertWorkout(exercises, numSets, exDuration, restDuration, setRe
         }))
     };
 
-    console.log("Saving workout:", workoutData);
-
+    // Resolves with the saved workout (including its new id)
     return new Promise((resolve, reject) => {
         const tx = db.transaction("workouts", "readwrite");
         const store = tx.objectStore("workouts");
 
-        store.add(workoutData);
+        const request = store.add(workoutData);
 
         tx.oncomplete = () => {
-            console.log("Workout transaction complete");
-            resolve();
+            resolve({ ...workoutData, id: request.result });
         };
 
         tx.onerror = () => {
@@ -360,7 +380,7 @@ async function importWorkouts(workouts) {
             continue;
         }
         existing.add(keyOf(w));
-        const { id, ...rest } = w;
+        const { id, username, ...rest } = w;
         toAdd.push(rest);
     }
 
