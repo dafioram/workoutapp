@@ -10,6 +10,12 @@ async function setInput(page, id, value) {
   await page.dispatchEvent(`#${id}`, 'change');
 }
 
+test('there is no manual Save Workout button', async ({ page }) => {
+  await page.click('#generateBtn');
+  await expect(page.locator('text=Start Timer')).toBeVisible();
+  await expect(page.locator('text=Save Workout')).toHaveCount(0);
+});
+
 test('Core Only picks exactly the ab_workout exercises', async ({ page }) => {
   await page.check('input[value=core]');
   await setInput(page, 'num_exercises', 60);

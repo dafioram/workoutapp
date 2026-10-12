@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { test, expect } = require('./helpers');
 
 // The timer is driven by Playwright's fake clock, so minutes pass instantly.
@@ -139,6 +140,38 @@ test('a full workout completes and saves', async ({ page }) => {
   const [saved] = await savedWorkouts(page);
   expect(saved).toMatchObject({ num_sets: 2, exercise_duration: 20, rest_duration: 10, set_rest: 30, notes: '' });
   expect(saved).not.toHaveProperty('username');
+});
+
+test('a finished workout can be exported as a file', async ({ page }) => {
+  await openTimer(page);
+  await expect(page.locator('#exportBtn')).toBeHidden();
+  await start(page);
+  await page.clock.runFor(257_000 + 1000);
+  await expect(page.locator('#exportBtn')).toBeVisible();
+  await expect(page.locator('#backBtn')).toBeVisible();
+
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportBtn')]);
+  expect(download.suggestedFilename()).toMatch(/^workout_\d{4}-\d{2}-\d{2}_\d{4}\.json$/);
+  const file = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  const [saved] = await savedWorkouts(page);
+  const { id, ...savedWithoutId } = saved;
+  expect(file).toMatchObject({ app: 'workoutapp', version: 2, kind: 'workout' });
+  expect(file.workouts).toEqual([savedWithoutId]);
+  await expect(page.locator('#exportBtn')).toHaveText('Exported ✓');
+});
+
+test('a workout ended early can be exported too', async ({ page }) => {
+  await openTimer(page);
+  await start(page);
+  await page.clock.runFor(7000 + 110_000 + 30_000 + 5000);
+  await page.click('#pauseBtn');
+  page.once('dialog', (d) => d.accept());
+  await page.click('#endBtn');
+  await expect(page.locator('#exportBtn')).toBeVisible();
+
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportBtn')]);
+  const file = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  expect(file.workouts[0]).toMatchObject({ num_sets: 1, notes: 'Ended early' });
 });
 
 test('rests of 0 create no rest phases', async ({ page }) => {

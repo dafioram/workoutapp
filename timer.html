@@ -65,6 +65,7 @@
     #pauseBtn { background-color: #ffc107; color: black; }
     #resumeBtn { background-color: #28a745; }
     #endBtn { background-color: #ff9800; }
+    #exportBtn { background-color: #607D8B; }
 
     .exercise-phase { background: #d4edda; }
     .rest-phase { background: #e2f0d9; } 
@@ -96,6 +97,7 @@
     <button id="pauseBtn" onclick="pauseWorkout()" style="display:none;">Pause</button>
     <button id="endBtn" onclick="endWorkoutEarly()" style="display:none;">End &amp; Save</button>
     <button id="resumeBtn" onclick="resumeWorkout()" style="display:none;">Resume</button>
+    <button id="exportBtn" onclick="exportSavedWorkout()" style="display:none;">Export workout</button>
   </div>
 
 <script>
@@ -147,6 +149,21 @@
   let pausedRemainingMs = 0;
   let ticker = null;
   let workoutFinished = false;
+  let savedWorkout = null; // set once the finished workout is stored
+
+  // Saves the workout as a file, e.g. to import on another device
+  async function exportSavedWorkout() {
+    if (!savedWorkout) return;
+    try {
+      const result = await AppLogic.exportWorkout(savedWorkout);
+      if (result !== "cancelled") {
+        document.getElementById("exportBtn").innerText = "Exported ✓";
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Couldn't export the workout.");
+    }
+  }
 
   // Changed to static file paths
   const beepShort = new Audio("static/sounds/beep_short.mp3");
@@ -231,9 +248,9 @@
       ready: ["backBtn", "startBtn"],
       running: ["pauseBtn"],
       paused: ["backBtn", "endBtn", "resumeBtn"],
-      finished: ["backBtn"]
+      finished: savedWorkout ? ["backBtn", "exportBtn"] : ["backBtn"]
     }[mode];
-    ["backBtn", "startBtn", "pauseBtn", "endBtn", "resumeBtn"].forEach(id => {
+    ["backBtn", "startBtn", "pauseBtn", "endBtn", "resumeBtn", "exportBtn"].forEach(id => {
       document.getElementById(id).style.display = visible.includes(id) ? "block" : "none";
     });
   }
@@ -503,7 +520,7 @@
       try {
           // Changed to client-side IndexedDB save
           if (window.DB && window.DB.insertWorkout) {
-              await window.DB.insertWorkout(
+              savedWorkout = await window.DB.insertWorkout(
                   exercises, 
                   sets, 
                   exDuration, 
@@ -514,6 +531,7 @@
                   notes
               );
               document.getElementById("exercise-description").innerHTML += "<br><em>Workout saved to device history!</em>";
+              updateButtons("finished");
           } else {
               console.warn("IndexedDB (window.DB) logic not found, skipping save.");
           }

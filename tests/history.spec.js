@@ -36,10 +36,12 @@ test('export and import round trip, skipping duplicates', async ({ page }) => {
   ]);
   expect(download.suggestedFilename()).toMatch(/^workout_log_\d{4}-\d{2}-\d{2}\.json$/);
   const file = await download.path();
-  expect(JSON.parse(fs.readFileSync(file, 'utf8')).workouts).toHaveLength(2);
+  const backup = JSON.parse(fs.readFileSync(file, 'utf8'));
+  expect(backup).toMatchObject({ app: 'workoutapp', version: 2, kind: 'backup' });
+  expect(backup.workouts).toHaveLength(2);
 
   await page.setInputFiles('#importFile', file);
-  await expect(page.locator('#backupStatus')).toContainText('Imported 0 workouts (2 already here or invalid)');
+  await expect(page.locator('#backupStatus')).toHaveText('Imported 0 workouts (2 already here).');
 
   await page.evaluate(() => new Promise(async (resolve) => {
     const db = await dbPromise;
@@ -48,7 +50,7 @@ test('export and import round trip, skipping duplicates', async ({ page }) => {
     tx.oncomplete = resolve;
   }));
   await page.setInputFiles('#importFile', file);
-  await expect(page.locator('#backupStatus')).toContainText('Imported 2 workouts');
+  await expect(page.locator('#backupStatus')).toHaveText('Imported 2 workouts.');
 });
 
 test('Repeat loads the same workout and settings into the timer', async ({ page }) => {
