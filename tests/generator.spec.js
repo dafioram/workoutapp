@@ -10,6 +10,12 @@ async function setInput(page, id, value) {
   await page.dispatchEvent(`#${id}`, 'change');
 }
 
+test('the history link on the generator page just says History', async ({ page }) => {
+  const link = page.locator('.footer-links a[href="history.html"]');
+  await expect(link).toHaveText('History');
+  await expect(page.locator('text=View Workout History')).toHaveCount(0);
+});
+
 test('there is no manual Save Workout button', async ({ page }) => {
   await page.click('#generateBtn');
   await expect(page.locator('text=Start Timer')).toBeVisible();

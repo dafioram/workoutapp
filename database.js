@@ -363,6 +363,17 @@ async function getAllWorkouts() {
     });
 }
 
+async function deleteWorkout(id) {
+    const db = await dbPromise;
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("workouts", "readwrite");
+        tx.objectStore("workouts").delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+    });
+}
+
 // Adds workouts from a backup, skipping any already stored
 // (same time). Returns { added, skipped }.
 async function importWorkouts(workouts) {
@@ -411,6 +422,7 @@ window.DB = {
 	getDBStatus,
     parseTimestamp,
     getAllWorkouts,
+    deleteWorkout,
     importWorkouts,
     requestPersistentStorage
 };

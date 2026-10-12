@@ -75,6 +75,8 @@ h2 { font-size: 1.15rem; margin: 0 0 10px; }
 }
 .btn.secondary { background: var(--secondary); }
 .btn.block { display: block; width: 100%; }
+.btn.danger { background: #d32f2f; }
+.btn.icon { padding-left: 11px; padding-right: 11px; }
 
 .btn-row { display: flex; gap: 10px; margin-top: 10px; }
 .btn-row .btn { flex: 1; }
@@ -82,11 +84,13 @@ h2 { font-size: 1.15rem; margin: 0 0 10px; }
 /* History */
 .workout-head {
   display: flex;
+  flex-wrap: wrap; /* on very narrow phones the buttons drop below the date */
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px 10px;
 }
 .workout-head strong { display: block; font-size: 1.05rem; }
+.nowrap, .workout-head .muted { white-space: nowrap; }
 .workout-head .btn { padding: 8px 14px; }
 .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .workout-stats { margin: 6px 0; }
