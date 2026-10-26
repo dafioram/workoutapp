@@ -1,6 +1,7 @@
 // app.js
 
-if ("serviceWorker" in navigator) {
+// The Android app bundles its files, so it doesn't need a service worker
+if ("serviceWorker" in navigator && !window.DB?.isNative) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("sw.js")
             .then(reg => {

@@ -1,0 +1,8 @@
+{
+  "appId": "com.dafioram.workout",
+  "appName": "Workout",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "workout-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android build of the Workout app with Capacitor. The web app in the parent folder is copied into www/ and bundled.",
+  "scripts": {
+    "prepare-www": "node scripts/prepare-www.mjs",
+    "sync": "npm run prepare-www && cap sync android"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/preferences": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}
