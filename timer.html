@@ -66,6 +66,8 @@
     #resumeBtn { background-color: #28a745; }
     #endBtn { background-color: #ff9800; }
     #exportBtn { background-color: #607D8B; }
+    /* The Android app has no export yet (see native/README.md) */
+    .native .web-only { display: none !important; }
 
     .exercise-phase { background: #d4edda; }
     .rest-phase { background: #e2f0d9; } 
@@ -97,7 +99,7 @@
     <button id="pauseBtn" onclick="pauseWorkout()" style="display:none;">Pause</button>
     <button id="endBtn" onclick="endWorkoutEarly()" style="display:none;">End &amp; Save</button>
     <button id="resumeBtn" onclick="resumeWorkout()" style="display:none;">Resume</button>
-    <button id="exportBtn" onclick="exportSavedWorkout()" style="display:none;">Export workout</button>
+    <button id="exportBtn" class="web-only" onclick="exportSavedWorkout()" style="display:none;">Export workout</button>
   </div>
 
 <script>

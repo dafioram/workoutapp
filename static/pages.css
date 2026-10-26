@@ -143,3 +143,6 @@ h2 { font-size: 1.15rem; margin: 0 0 10px; }
 .warmup-list { margin: 0; padding-left: 22px; font-size: 1.1rem; }
 .warmup-list li { padding: 8px 0; border-bottom: 1px solid var(--border); }
 .warmup-list li:last-child { border-bottom: none; }
+
+/* The Android app has no export or import yet (see native/README.md) */
+.native .web-only { display: none !important; }
