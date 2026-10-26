@@ -29,12 +29,13 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
-
+      # The runner image already has the Android SDK in $ANDROID_HOME. Accept
+      # the licences and install the platform and build tools this project uses.
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin | head -n 1)/sdkmanager"
+          printf 'y\n%.0s' {1..100} | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install Capacitor
         working-directory: native
