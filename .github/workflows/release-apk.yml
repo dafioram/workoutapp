@@ -1,0 +1,129 @@
+name: Release APK
+
+# Builds a signed release APK.
+#   Push a tag such as v1.2.0  -> builds and signs it, then creates the GitHub
+#                                 Release "v1.2.0" with the APK attached.
+#   Run workflow by hand       -> builds and signs it with the version you enter,
+#                                 and uploads the APK as an artifact only. Use this
+#                                 to check signing without publishing a release.
+#
+# Needs these repository secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name for this test build, e.g. 1.2.0-test'
+        required: false
+        default: '0.0.0-test'
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Same SDK setup as android.yml
+      - name: Install Android SDK packages
+        run: |
+          SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin | head -n 1)/sdkmanager"
+          printf 'y\n%.0s' {1..100} | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install Capacitor
+        working-directory: native
+        run: npm ci
+
+      - name: Copy the web app into the bundle
+        working-directory: native
+        run: npm run prepare-www
+
+      - name: Sync web assets into the Android project
+        working-directory: native
+        run: npx cap sync android
+
+      - name: Work out the version
+        env:
+          INPUT_VERSION: ${{ inputs.version_name }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Tag '$GITHUB_REF_NAME' must look like v1.2.0" >&2
+              exit 1
+            fi
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="$INPUT_VERSION"
+          fi
+          echo "ANDROID_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          # Android needs a larger versionCode for every release. The run number grows each time.
+          echo "ANDROID_VERSION_CODE=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          echo "Building version $VERSION_NAME (code $GITHUB_RUN_NUMBER)"
+
+      - name: Decode the signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "The ANDROID_KEYSTORE_BASE64 secret is empty" >&2
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build the signed release APK
+        working-directory: native/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Check the APK is signed
+        working-directory: native/android/app/build/outputs/apk/release
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --print-certs app-release.apk
+          echo "APK_PATH=$PWD/Workout-$ANDROID_VERSION_NAME.apk" >> "$GITHUB_ENV"
+          cp app-release.apk "Workout-$ANDROID_VERSION_NAME.apk"
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
+
+      - name: Create the GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$APK_PATH" \
+            --verify-tag --title "Workout $GITHUB_REF_NAME" --generate-notes
+
+      - name: Upload the test APK
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: workout-signed-apk-${{ env.ANDROID_VERSION_NAME }}
+          path: ${{ env.APK_PATH }}
+          if-no-files-found: error
+          retention-days: 14

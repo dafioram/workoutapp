@@ -5,6 +5,7 @@ name: Android build
 
 on:
   push:
+    branches: ['**']   # not tags: tags build the signed APK in release-apk.yml
   pull_request:
   workflow_dispatch:
 

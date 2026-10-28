@@ -15,10 +15,37 @@ same files and runs them in a WebView.
 
 ## Build
 
-GitHub Actions builds the app: `.github/workflows/android.yml`. It runs on every
-push and pull request, and can be started by hand (Actions tab, "Android build",
-"Run workflow"). The result is `app-debug.apk`, under the run's **Artifacts**.
-The APK is unsigned and for testing only.
+GitHub Actions builds a debug APK on every branch push and pull request:
+`.github/workflows/android.yml`. The result is `app-debug.apk`, under the run's
+**Artifacts**. Debug builds are for testing only.
+
+## Releasing a signed APK
+
+`.github/workflows/release-apk.yml` builds a signed release APK. It needs the
+repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`.
+
+**To release a version**, tag a commit on `main` and push the tag:
+
+```sh
+git checkout main && git pull
+git tag v1.0.0            # must look like v<major>.<minor>.<patch>
+git push origin v1.0.0
+```
+
+The workflow builds the APK, signs it, and creates the GitHub Release `v1.0.0`
+with `Workout-1.0.0.apk` attached. Release notes are generated from the commits
+since the last tag. The Android version name comes from the tag, and the version
+code is the workflow run number, which always goes up.
+
+**To test signing without publishing a release**, open the Actions tab, choose
+"Release APK", and select "Run workflow". Enter a test version such as
+`1.0.0-test`. The signed APK is uploaded as an artifact, and no release or tag is
+created.
+
+**Keep the keystore safe.** Anyone who has it can sign updates as you, and if it
+is lost, installed copies of the app can't be updated. Keep an offline backup of
+the `.jks` file and its passwords. Don't commit it to the repository.
 
 To build locally you need JDK 21 and the Android SDK (platform 36, build-tools
 36.0.0):
@@ -44,9 +71,6 @@ Android app, because the files are already on the device.
 - **Export and Import** (history backups, "Export workout") are hidden in the
   Android app. The WebView can't save files the way a browser does; this needs
   the Capacitor Share and Filesystem plugins.
-- **Signing:** the APK is debug-signed. Release signing needs a keystore and
-  signing settings in `android/app/build.gradle`, plus a signing config in
-  GitHub secrets. It can be added later.
 - **Icons and splash screen:** the default Capacitor icon is used. Generating
   them from `static/icons/icon-512.png` is a follow-up.
 
