@@ -132,19 +132,18 @@ const indexedDBStorage = {
                 const tx = db.transaction("exercises", "readwrite");
                 const store = tx.objectStore("exercises");
 
-                const clearRequest = store.clear();
-
-                clearRequest.onerror = () => {
-                    reject(clearRequest.error);
-                };
-
-                for (const ex of list) {
-                    store.put(ex);
-                }
-
                 tx.oncomplete = resolve;
-                tx.onerror = () => reject(tx.error);
-                tx.onabort = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error || new Error("Exercise replacement aborted"));
+                try {
+                    store.clear();
+                    for (const ex of list) {
+                        store.put(ex);
+                    }
+                } catch (err) {
+                    // A synchronous request error does not abort queued writes.
+                    tx.onabort = () => reject(err);
+                    tx.abort();
+                }
             });
         }
     },
@@ -382,6 +381,28 @@ async function checkForExerciseUpdate() {
 }
 
 async function replaceExercises(exercises) {
+    if (!Array.isArray(exercises) || exercises.length === 0) {
+        throw new Error("Invalid exercise library");
+    }
+
+    // Validate fields used by the app before replacing the cached library.
+    const ids = new Set();
+    const textFields = ["alternate_name", "description", "muscle", "type", "image"];
+    const flags = ["active", "ab_workout", "tv_friendly", "is_mobility"];
+    for (const ex of exercises) {
+        if (!ex || !Number.isSafeInteger(ex.id) || typeof ex.name !== "string" || !ex.name.trim()) {
+            throw new Error("Invalid exercise record: expected an integer ID and a name");
+        }
+        if (ids.has(ex.id)) {
+            throw new Error(`Duplicate exercise ID: ${ex.id}`);
+        }
+        if (textFields.some(field => ex[field] !== undefined && typeof ex[field] !== "string") ||
+            flags.some(field => ex[field] !== undefined && typeof ex[field] !== "boolean")) {
+            throw new Error(`Invalid exercise fields for ID ${ex.id}`);
+        }
+        ids.add(ex.id);
+    }
+
     return storage.exercises.replaceAll(exercises.map(toStoredExercise));
 }
 
@@ -408,13 +429,7 @@ async function reloadExercises() {
         throw new Error("Failed to load exercises.json");
     }
 
-    const exercises = await response.json();
-
-    if (!Array.isArray(exercises) || exercises.length === 0) {
-        throw new Error("Invalid exercise library");
-    }
-
-    return replaceExercises(exercises);
+    return replaceExercises(await response.json());
 }
 
 async function updateExerciseLibrary(version) {

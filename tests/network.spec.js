@@ -84,6 +84,58 @@ test('Reload on the exercises page records the library version', async ({ page, 
   expect(libraryDownloads).toBe(1);
 });
 
+test('Reload rejects a malformed catalog and keeps the previous exercises and version', async ({ page, context }) => {
+  await page.goto('index.html');
+  await waitForGenerator(page);
+  const snapshot = () => page.evaluate(async () => ({
+    exercises: await DB.getAllExercises(),
+    version: await DB.getSetting('exerciseVersion'),
+  }));
+  const before = await snapshot();
+
+  let catalog = [EXERCISES[0], { name: 'Missing ID' }];
+  await serveExerciseData(context, (file) => {
+    if (file === 'version.json') return { exercisesVersion: 'test-v2' };
+    if (file === 'exercises.json') return catalog;
+  });
+
+  await page.goto('exercises.html');
+  await page.getByRole('button', { name: 'Reload Exercises' }).click();
+  await expect(page.locator('#toast')).toContainText('Update failed. Keeping current exercises.');
+  expect(await snapshot()).toEqual(before);
+
+  // Duplicate IDs must also be rejected instead of silently overwriting a row.
+  catalog = [EXERCISES[0], { ...EXERCISES[0], name: 'Duplicate ID' }];
+  await expect(page.evaluate(() => DB.updateExerciseLibrary('test-v2'))).rejects.toThrow('Duplicate exercise ID');
+  expect(await snapshot()).toEqual(before);
+
+  catalog = [{ ...EXERCISES[0], name: 'Push Ups v2' }, ...EXERCISES.slice(1)];
+  await page.getByRole('button', { name: 'Reload Exercises' }).click();
+  await expect(page.locator('#toast')).toContainText('Exercises updated.');
+  expect(await page.evaluate(() => DB.getSetting('exerciseVersion'))).toBe('test-v2');
+  await expect(page.locator('#exercisesContainer')).toContainText('Push Ups v2');
+});
+
+test('a synchronous IndexedDB write error rolls back the entire catalog replacement', async ({ page, context }) => {
+  await page.goto('index.html');
+  await waitForGenerator(page);
+  const before = await page.evaluate(() => DB.getAllExercises());
+  await serveExerciseData(context, {
+    'exercises.json': [{ ...EXERCISES[0], name: 'Push Ups v2' }, EXERCISES[1]],
+  });
+
+  await page.evaluate((id) => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (exercise) {
+      if (this.name === 'exercises' && exercise.id === id) throw new Error('Injected write error');
+      return put.call(this, exercise);
+    };
+  }, EXERCISES[1].id);
+
+  await expect(page.evaluate(() => DB.reloadExercises())).rejects.toThrow('Injected write error');
+  expect(await page.evaluate(() => DB.getAllExercises())).toEqual(before);
+});
+
 test('exercise image paths resolve against the exercise-data site', async ({ page, context }) => {
   await serveExerciseData(context, {
     'exercises.json': EXERCISES.map((e) => (e.id === 101 ? { ...e, image: 'images/push_ups.png' } : e)),
